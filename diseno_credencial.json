@@ -1,0 +1,13 @@
+{
+  "orientacion": "vertical",
+  "lados": {
+    "frente": {
+      "fondo_path": null,
+      "campos": {}
+    },
+    "reverso": {
+      "fondo_path": null,
+      "campos": {}
+    }
+  }
+}

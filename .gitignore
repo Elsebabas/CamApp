@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+
+build/
+dist/
+installer_artifacts/
+.installer_work/
+.tools/
+.installer_test/
+innosetup-*.exe
+outputs/
+respaldos_camapp/
+
+venv/
+.venv/
+venv_anterior/
+.git_corrupto_20261009/
