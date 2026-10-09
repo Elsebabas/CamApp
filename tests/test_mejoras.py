@@ -8,6 +8,7 @@ import pandas as pd
 from generador_credenciales import (
     _ajustar_fuente_al_campo, calcular_distribucion_hoja,
     crear_hoja_impresion, cm_a_px, generar_hojas_impresion,
+    nombre_pdf_alumno,
 )
 from camara import crear_recorte_ajustado
 from excel_datos import (
@@ -195,6 +196,15 @@ class PruebasAjusteTexto(unittest.TestCase):
 
 
 class PruebasHojasImpresion(unittest.TestCase):
+    def test_nombre_pdf_individual_usa_matricula_y_nombre(self):
+        self.assertEqual(
+            nombre_pdf_alumno({
+                "Matricula": "2026001",
+                "NombreCompleto": "ANA PÉREZ LÓPEZ",
+            }),
+            "2026001_ANA_PEREZ_LOPEZ",
+        )
+
     def test_carta_vertical_admite_ocho_credenciales_horizontales(self):
         distribucion = calcular_distribucion_hoja(
             papel="Carta", orientacion="Vertical",

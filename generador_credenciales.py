@@ -23,6 +23,15 @@ from utilidades import (
 from validacion_credenciales import validar_pre_generacion
 
 RESOLUCION_IMPRESION_DPI = 300
+
+
+def nombre_pdf_alumno(fila):
+    """Construye un nombre identificable para un PDF de un solo alumno."""
+    matricula = sanitizar_nombre_archivo(str(fila.get("Matricula", "")).strip())
+    nombre = sanitizar_nombre_archivo(
+        str(fila.get("NombreCompleto", "")).strip())
+    partes = [parte for parte in (matricula, nombre) if parte]
+    return "_".join(partes) or "Credencial_sin_identificar"
 TAMANOS_PAPEL_CM = {
     "Carta": (21.59, 27.94),
     "A4": (21.0, 29.7),
@@ -268,8 +277,12 @@ def generar_hojas_impresion(
     if not registros:
         return 0, errores, None
 
-    ruta_pdf = os.path.join(
-        carpeta_salida, f"Frentes_{nombre_grupo}.pdf")
+    if len(registros) == 1:
+        ruta_pdf = os.path.join(
+            carpeta_salida, f"{nombre_pdf_alumno(registros[0][0])}.pdf")
+    else:
+        ruta_pdf = os.path.join(
+            carpeta_salida, f"Frentes_{nombre_grupo}.pdf")
 
     # En Solo frente cada página conserva exactamente el tamaño físico de la
     # credencial. No se aplica papel, margen, separación ni marcas de corte.
@@ -418,8 +431,7 @@ def generar_credenciales(carpeta_salida=None, solo_grupo="Todos",
             carpeta_grupo = os.path.join(carpeta_salida, sanitizar_nombre_archivo(fila["Grupo"]))
             os.makedirs(carpeta_grupo, exist_ok=True)
 
-            nombre_archivo = sanitizar_nombre_archivo(
-                f"{fila['NombreCompleto']}_{fila['Matricula']}") + ".pdf"
+            nombre_archivo = nombre_pdf_alumno(fila) + ".pdf"
             ruta_pdf = os.path.join(carpeta_grupo, nombre_archivo)
 
             imagen_frente.save(
