@@ -11,6 +11,7 @@ Solo genera credencial para alumnos que ya tienen foto tomada (FotoTomada
 
 import os
 import json
+from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import ttkbootstrap as tb
@@ -21,6 +22,8 @@ from utilidades import (
     sanitizar_nombre_archivo, obtener_valor_campo, resolver_ruta_archivo,
 )
 from validacion_credenciales import validar_pre_generacion
+from historial import registrar_impresion
+from excel_datos import guardar_excel, actualizar_lista, actualizar_etiqueta_alumno
 
 RESOLUCION_IMPRESION_DPI = 300
 
@@ -338,9 +341,31 @@ def generar_hojas_impresion(
     return len(registros), errores, ruta_pdf
 
 
+def _registrar_generacion(df, tipo, ruta_pdf, indices, es_reposicion=False):
+    """Actualiza contadores del Excel y agrega una entrada al historial."""
+    ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    for idx in indices:
+        if idx not in df.index:
+            continue
+        fila = df.loc[idx]
+        try:
+            impresiones = int(float(fila.get("Impresiones", 0) or 0))
+        except (TypeError, ValueError):
+            impresiones = 0
+        try:
+            reposiciones = int(float(fila.get("Reposiciones", 0) or 0))
+        except (TypeError, ValueError):
+            reposiciones = 0
+        df.at[idx, "Impresiones"] = impresiones + 1
+        df.at[idx, "Reposiciones"] = reposiciones + (1 if es_reposicion else 0)
+        df.at[idx, "UltimaImpresion"] = ahora
+        registrar_impresion(
+            fila, idx, tipo, ruta_pdf, reposicion=es_reposicion)
+
+
 def generar_credenciales(carpeta_salida=None, solo_grupo="Todos",
                          indices_permitidos=None, diseno_precargado=None,
-                         opciones_impresion=None):
+                         opciones_impresion=None, es_reposicion=False):
     """Genera un PDF (frente+reverso) por cada alumno con foto ya tomada."""
     if estado.df_alumnos is None:
         messagebox.showwarning("Sin datos", "Primero carga el Excel de alumnos.")
@@ -416,6 +441,17 @@ def generar_credenciales(carpeta_salida=None, solo_grupo="Todos",
         )
         if errores:
             mensaje += "\n\nErrores en:\n" + "\n".join(errores[:5])
+        indices_generados = [
+            idx for idx, fila in df.iterrows()
+            if (opciones_impresion["lados"] == "Solo detrás"
+                or fila.get("FotoTomada") == "Sí")
+        ]
+        _registrar_generacion(
+            estado.df_alumnos, opciones_impresion["lados"], ruta_pdf,
+            indices_generados, es_reposicion=es_reposicion)
+        guardar_excel(mostrar_aviso=False)
+        actualizar_lista()
+        actualizar_etiqueta_alumno()
         messagebox.showinfo("Hojas de impresión generadas", mensaje)
         return
 
@@ -438,6 +474,9 @@ def generar_credenciales(carpeta_salida=None, solo_grupo="Todos",
                 ruta_pdf, "PDF", resolution=RESOLUCION_IMPRESION_DPI,
                 save_all=True, append_images=[imagen_reverso]
             )
+            _registrar_generacion(
+                estado.df_alumnos, "Credencial individual", ruta_pdf, [idx],
+                es_reposicion=es_reposicion)
             generadas += 1
         except Exception as e:
             errores.append(f"{fila.get('NombreCompleto', idx)}: {e}")
@@ -452,6 +491,11 @@ def generar_credenciales(carpeta_salida=None, solo_grupo="Todos",
         if len(errores) > 5:
             mensaje += f"\n... y {len(errores) - 5} más."
 
+    if generadas:
+        guardar_excel(mostrar_aviso=False)
+        actualizar_lista()
+        actualizar_etiqueta_alumno()
+
     messagebox.showinfo("Generación completa", mensaje)
 
 
@@ -463,10 +507,10 @@ def imprimir_alumno_seleccionado():
             "Selecciona un alumno antes de imprimir su credencial.",
         )
         return
-    abrir_generador_credenciales([estado.alumno_actual_idx])
+    abrir_generador_credenciales([estado.alumno_actual_idx], es_reposicion=True)
 
 
-def abrir_generador_credenciales(indices_iniciales=None):
+def abrir_generador_credenciales(indices_iniciales=None, es_reposicion=False):
     """Permite exportar frentes, credenciales individuales o reverso común."""
     if estado.df_alumnos is None:
         messagebox.showwarning("Sin datos", "Primero carga el Excel de alumnos.")
@@ -692,14 +736,15 @@ def abrir_generador_credenciales(indices_iniciales=None):
                 or opciones_impresion["lados"] != "Solo detrás"))
         ventana.destroy()
         mostrar_resultados_validacion(
-            resultado, grupo_sel, diseno, opciones_impresion)
+            resultado, grupo_sel, diseno, opciones_impresion,
+            es_reposicion=es_reposicion)
 
     tb.Button(ventana, text="🖨️ Generar", bootstyle="success", cursor="hand2",
               command=iniciar_generacion).pack(pady=(10, 20), ipady=6)
 
 
 def mostrar_resultados_validacion(
-        resultado, grupo, diseno, opciones_impresion=None):
+        resultado, grupo, diseno, opciones_impresion=None, es_reposicion=False):
     ventana = tk.Toplevel(estado.root)
     ventana.title("Validación previa de credenciales")
     ventana.geometry("980x560")
@@ -794,6 +839,7 @@ def mostrar_resultados_validacion(
             indices_permitidos=resultado["indices_validos"],
             diseno_precargado=diseno,
             opciones_impresion=opciones_impresion,
+            es_reposicion=es_reposicion,
         )
 
     frame_botones = tb.Frame(ventana)

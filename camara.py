@@ -7,7 +7,7 @@ silueta de referencia, detección de foto borrosa, y guardado de la foto
 import os
 from datetime import datetime
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
 import ttkbootstrap as tb
 import cv2
 import imutils
@@ -276,6 +276,40 @@ def tomar_foto():
     frame = imutils.resize(frame, width=950)
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     img = Image.fromarray(frame)
+
+    abrir_editor_fotografia(img)
+
+
+def cargar_foto_archivo():
+    """Carga una fotografía existente y la pasa por el mismo editor/recorte."""
+    if estado.ventana_foto_activa is not None:
+        return
+    if estado.df_alumnos is None:
+        messagebox.showwarning("Sin Excel", "Primero carga el Excel de alumnos.")
+        return
+    if estado.alumno_actual_idx is None:
+        messagebox.showwarning("Falta el alumno", "Selecciona un alumno de la lista primero.")
+        return
+    ruta = filedialog.askopenfilename(
+        title="Seleccionar fotografía del alumno",
+        filetypes=[("Imágenes", "*.jpg *.jpeg *.png *.bmp *.webp"),
+                   ("Todos los archivos", "*.*")],
+        parent=estado.root,
+    )
+    if not ruta:
+        return
+    try:
+        with Image.open(ruta) as imagen:
+            imagen = imagen.convert("RGB")
+            abrir_editor_fotografia(imagen.copy())
+    except Exception as error:
+        messagebox.showerror("No se pudo abrir la fotografía", str(error))
+
+
+def abrir_editor_fotografia(img):
+    """Abre el editor común para una captura de cámara o un archivo."""
+    if estado.alumno_actual_idx is None or estado.df_alumnos is None:
+        return
 
     fila = estado.df_alumnos.loc[estado.alumno_actual_idx]
 
