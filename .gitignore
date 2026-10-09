@@ -5,6 +5,7 @@ build/
 dist/
 installer_artifacts/
 .installer_work/
+.installer_work_nuevo/
 .tools/
 .installer_test/
 innosetup-*.exe
