@@ -29,7 +29,9 @@ from camara import (
     abrir_configuracion_camara,
 )
 from diseñador_credencial import abrir_disenador_credencial
-from generador_credenciales import abrir_generador_credenciales
+from generador_credenciales import (
+    abrir_generador_credenciales, imprimir_alumno_seleccionado,
+)
 from proyectos import crear_proyecto, activar_proyecto
 
 
@@ -57,6 +59,8 @@ frame_superior.pack(side="top", fill="x")
 def limpiar_datos_actuales():
     estado.df_alumnos = None
     estado.alumno_actual_idx = None
+    if estado.boton_imprimir_credencial:
+        estado.boton_imprimir_credencial.configure(state="disabled")
     for item in estado.tree.get_children() if estado.tree else []:
         estado.tree.delete(item)
     if estado.combo_grupo:
@@ -241,6 +245,12 @@ estado.etiqueta_alumno.pack(side="left", padx=(0, 10))
 
 tb.Button(frame_alumno_seleccionado, text="✏️ Editar Datos", bootstyle="secondary-outline",
           cursor="hand2", command=abrir_editor_alumno).pack(side="left")
+
+estado.boton_imprimir_credencial = tb.Button(
+    frame_alumno_seleccionado, text="🖨️ Imprimir credencial",
+    bootstyle="success-outline", cursor="hand2",
+    command=imprimir_alumno_seleccionado, state="disabled")
+estado.boton_imprimir_credencial.pack(side="left", padx=(8, 0))
 
 # Los controles se empaquetan desde abajo antes que el video para reservar
 # siempre su espacio, incluso en pantallas de menor altura.

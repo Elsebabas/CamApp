@@ -33,6 +33,7 @@ barra_progreso = None
 boton_iniciar_camara = None
 boton_tomar_foto = None
 boton_detener_camara = None
+boton_imprimir_credencial = None
 id_notificacion_pendiente = None
 
 # ─── Proyecto activo ─────────────────────────────────────────────────────────

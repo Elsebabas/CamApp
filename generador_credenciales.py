@@ -443,7 +443,18 @@ def generar_credenciales(carpeta_salida=None, solo_grupo="Todos",
     messagebox.showinfo("Generación completa", mensaje)
 
 
-def abrir_generador_credenciales():
+def imprimir_alumno_seleccionado():
+    """Abre el generador limitado al alumno seleccionado en la tabla."""
+    if estado.df_alumnos is None or estado.alumno_actual_idx is None:
+        messagebox.showwarning(
+            "Sin alumno seleccionado",
+            "Selecciona un alumno antes de imprimir su credencial.",
+        )
+        return
+    abrir_generador_credenciales([estado.alumno_actual_idx])
+
+
+def abrir_generador_credenciales(indices_iniciales=None):
     """Permite exportar frentes, credenciales individuales o reverso común."""
     if estado.df_alumnos is None:
         messagebox.showwarning("Sin datos", "Primero carga el Excel de alumnos.")
@@ -455,9 +466,28 @@ def abrir_generador_credenciales():
 
     tb.Label(ventana, text="Generar credenciales en PDF",
              font=("Segoe UI", 12, "bold")).pack(padx=20, pady=(20, 5))
+    indices_iniciales = list(indices_iniciales or [])
+    es_impresion_individual = len(indices_iniciales) == 1
+    alumno_individual = None
+    if es_impresion_individual:
+        idx = indices_iniciales[0]
+        if idx not in estado.df_alumnos.index:
+            messagebox.showwarning(
+                "Alumno no disponible",
+                "El alumno seleccionado ya no está disponible.",
+                parent=ventana,
+            )
+            ventana.destroy()
+            return
+        alumno_individual = estado.df_alumnos.loc[idx]
+
     tb.Label(
         ventana,
-        text="Elige qué parte de las credenciales necesitas imprimir.",
+        text=(
+            f"Imprimir únicamente a: {alumno_individual['NombreCompleto']}"
+            if es_impresion_individual
+            else "Elige qué parte de las credenciales necesitas imprimir."
+        ),
              font=("Segoe UI", 9), bootstyle="secondary", justify="center"
              ).pack(padx=20, pady=(0, 10))
 
@@ -468,10 +498,15 @@ def abrir_generador_credenciales():
     grupos = sorted([g for g in estado.df_alumnos["Grupo"].unique().tolist() if g])
     combo_grupo_gen = tb.Combobox(frame_opciones, values=["Todos"] + grupos,
                                   state="readonly", width=15)
-    combo_grupo_gen.set("Todos")
+    combo_grupo_gen.set(
+        str(alumno_individual["Grupo"]) if es_impresion_individual else "Todos")
     combo_grupo_gen.grid(row=0, column=1, padx=5)
+    if es_impresion_individual:
+        combo_grupo_gen.configure(state="disabled")
 
-    var_modo = tk.StringVar(value="Solo frente")
+    var_modo = tk.StringVar(
+        value="Credenciales individuales"
+        if es_impresion_individual else "Solo frente")
     tb.Label(frame_opciones, text="Salida:").grid(
         row=1, column=0, sticky="e", padx=5, pady=(12, 2))
     combo_modo = tb.Combobox(
@@ -631,8 +666,13 @@ def abrir_generador_credenciales():
             elif opciones_impresion["lados"] == "Solo detrás":
                 lados_requeridos = ("reverso",)
             reverso_comun = opciones_impresion["reverso_comun"]
+        df_validacion = estado.df_alumnos
+        grupo_validacion = grupo_sel
+        if es_impresion_individual:
+            df_validacion = estado.df_alumnos.loc[indices_iniciales]
+            grupo_validacion = "Todos"
         resultado = validar_pre_generacion(
-            estado.df_alumnos, diseno, grupo_sel,
+            df_validacion, diseno, grupo_validacion,
             lados_requeridos=lados_requeridos,
             reverso_comun=reverso_comun,
             requerir_fotografia=(

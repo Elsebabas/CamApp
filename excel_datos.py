@@ -320,9 +320,13 @@ def seleccionar_alumno(event=None):
     seleccion = estado.tree.selection()
     if not seleccion:
         estado.alumno_actual_idx = None
+        if estado.boton_imprimir_credencial:
+            estado.boton_imprimir_credencial.configure(state="disabled")
         actualizar_etiqueta_alumno()
         return
     estado.alumno_actual_idx = int(seleccion[0])
+    if estado.boton_imprimir_credencial:
+        estado.boton_imprimir_credencial.configure(state="normal")
     actualizar_etiqueta_alumno()
 
 
