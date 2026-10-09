@@ -236,21 +236,26 @@ scrollbar_tree.pack(side="left", fill="y")
 frame_derecho = tb.Labelframe(frame_contenido, text="Cámara", bootstyle="primary", padding=12)
 frame_derecho.pack(side="left", fill="both", expand=True)
 
-frame_alumno_seleccionado = tb.Frame(frame_derecho)
-frame_alumno_seleccionado.pack(pady=5)
+frame_info_alumno = tb.Frame(frame_derecho)
+frame_info_alumno.pack(fill="x", pady=(5, 2))
 
-estado.etiqueta_alumno = tb.Label(frame_alumno_seleccionado, text="Sin alumno seleccionado",
-                                   font=("Segoe UI", 12, "bold"))
-estado.etiqueta_alumno.pack(side="left", padx=(0, 10))
+estado.etiqueta_alumno = tb.Label(
+    frame_info_alumno, text="Sin alumno seleccionado",
+    font=("Segoe UI", 12, "bold"), anchor="center", justify="center")
+estado.etiqueta_alumno.pack(fill="x", padx=8)
 
-tb.Button(frame_alumno_seleccionado, text="✏️ Editar Datos", bootstyle="secondary-outline",
-          cursor="hand2", command=abrir_editor_alumno).pack(side="left")
+frame_acciones_alumno = tb.Frame(frame_derecho)
+frame_acciones_alumno.pack(pady=(2, 8))
+
+tb.Button(frame_acciones_alumno, text="✏️ Editar Datos", bootstyle="secondary-outline",
+          cursor="hand2", command=abrir_editor_alumno, width=18
+          ).pack(side="left", padx=5, ipady=4)
 
 estado.boton_imprimir_credencial = tb.Button(
-    frame_alumno_seleccionado, text="🖨️ Imprimir credencial",
+    frame_acciones_alumno, text="🖨️ Imprimir credencial",
     bootstyle="success-outline", cursor="hand2",
-    command=imprimir_alumno_seleccionado, state="disabled")
-estado.boton_imprimir_credencial.pack(side="left", padx=(8, 0))
+    command=imprimir_alumno_seleccionado, state="disabled", width=22)
+estado.boton_imprimir_credencial.pack(side="left", padx=5, ipady=4)
 
 # Los controles se empaquetan desde abajo antes que el video para reservar
 # siempre su espacio, incluso en pantallas de menor altura.
