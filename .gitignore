@@ -6,6 +6,7 @@ dist/
 installer_artifacts/
 .installer_work/
 .installer_work_nuevo/
+.installer_work_tclfix/
 .tools/
 .installer_test/
 innosetup-*.exe

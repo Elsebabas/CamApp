@@ -14,7 +14,7 @@ a = Analysis(
     hiddenimports=imports_ocultos,
     hookspath=['hooks'],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=['hooks/runtime_tkinter_paths.py'],
     excludes=[],
     noarchive=False,
 )
