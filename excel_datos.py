@@ -58,6 +58,9 @@ def construir_fila_alumno(datos):
     fila["RutaFoto"] = ""
     fila["FotoTomada"] = "No"
     fila["FechaCaptura"] = ""
+    fila["Impresiones"] = 0
+    fila["Reposiciones"] = 0
+    fila["UltimaImpresion"] = ""
     return fila
 
 
@@ -217,6 +220,14 @@ def cargar_excel(ruta_forzada=None, preguntar_progreso=True):
         df["FotoTomada"] = "No"
     if "FechaCaptura" not in df.columns:
         df["FechaCaptura"] = ""
+    if "Impresiones" not in df.columns:
+        df["Impresiones"] = 0
+    if "Reposiciones" not in df.columns:
+        df["Reposiciones"] = 0
+    if "UltimaImpresion" not in df.columns:
+        df["UltimaImpresion"] = ""
+    for columna in ("Impresiones", "Reposiciones"):
+        df[columna] = pd.to_numeric(df[columna], errors="coerce").fillna(0).astype(int)
 
     estado.df_alumnos = df
     estado.ruta_excel_trabajo = ruta_trabajo_posible
@@ -228,6 +239,8 @@ def cargar_excel(ruta_forzada=None, preguntar_progreso=True):
     grupos = sorted([g for g in estado.df_alumnos["Grupo"].unique().tolist() if g])
     estado.combo_grupo["values"] = ["Todos"] + grupos
     estado.combo_grupo.set("Todos")
+    if estado.combo_estado_foto:
+        estado.combo_estado_foto.set("Todos")
     estado.entry_buscar.delete(0, tk.END)
 
     # Crear una subcarpeta por cada grupo dentro de fotos_alumnos/
@@ -292,11 +305,16 @@ def actualizar_lista(*_):
         return
 
     grupo_sel = estado.combo_grupo.get()
+    estado_foto_sel = estado.combo_estado_foto.get() if estado.combo_estado_foto else "Todos"
     texto_busqueda = estado.entry_buscar.get().strip().lower()
 
     df_filtrado = estado.df_alumnos
     if grupo_sel and grupo_sel != "Todos":
         df_filtrado = df_filtrado[df_filtrado["Grupo"] == grupo_sel]
+    if estado_foto_sel == "Con foto":
+        df_filtrado = df_filtrado[df_filtrado["FotoTomada"] == "Sí"]
+    elif estado_foto_sel == "Sin foto":
+        df_filtrado = df_filtrado[df_filtrado["FotoTomada"] != "Sí"]
 
     if texto_busqueda:
         mask = (
@@ -322,11 +340,17 @@ def seleccionar_alumno(event=None):
         estado.alumno_actual_idx = None
         if estado.boton_imprimir_credencial:
             estado.boton_imprimir_credencial.configure(state="disabled")
+        for boton in (estado.boton_cargar_foto, estado.boton_historial):
+            if boton:
+                boton.configure(state="disabled")
         actualizar_etiqueta_alumno()
         return
     estado.alumno_actual_idx = int(seleccion[0])
     if estado.boton_imprimir_credencial:
         estado.boton_imprimir_credencial.configure(state="normal")
+    for boton in (estado.boton_cargar_foto, estado.boton_historial):
+        if boton:
+            boton.configure(state="normal")
     actualizar_etiqueta_alumno()
 
 
@@ -369,7 +393,9 @@ def actualizar_etiqueta_alumno():
     fila = estado.df_alumnos.loc[estado.alumno_actual_idx]
     estado.etiqueta_alumno.configure(
         text=f"Alumno seleccionado: {fila['NombreCompleto']}  |  "
-             f"Matrícula: {fila['Matricula']}  |  Grupo: {fila['Grupo']}"
+             f"Matrícula: {fila['Matricula']}  |  Grupo: {fila['Grupo']}  |  "
+             f"Impresiones: {int(fila.get('Impresiones', 0) or 0)}  |  "
+             f"Reposiciones: {int(fila.get('Reposiciones', 0) or 0)}"
     )
 
 
@@ -470,7 +496,8 @@ def abrir_agregar_alumno():
             os.makedirs(estado.FOTOS_DIR, exist_ok=True)
             columnas = estado.COLUMNAS_REQUERIDAS + [
                 "Apellidos", "NombreCompleto", "RutaFoto",
-                "FotoTomada", "FechaCaptura",
+                "FotoTomada", "FechaCaptura", "Impresiones",
+                "Reposiciones", "UltimaImpresion",
             ]
             estado.df_alumnos = pd.DataFrame(columns=columnas)
 

@@ -25,9 +25,10 @@ from excel_datos import (
     actualizar_etiqueta_excel, actualizar_etiqueta_alumno,
 )
 from camara import (
-    video_camara, tomar_foto, detener_video, cerrar_ventana,
+    video_camara, tomar_foto, cargar_foto_archivo, detener_video, cerrar_ventana,
     abrir_configuracion_camara,
 )
+from historial import mostrar_historial_alumno
 from diseñador_credencial import abrir_disenador_credencial
 from generador_credenciales import (
     abrir_generador_credenciales, imprimir_alumno_seleccionado,
@@ -61,11 +62,17 @@ def limpiar_datos_actuales():
     estado.alumno_actual_idx = None
     if estado.boton_imprimir_credencial:
         estado.boton_imprimir_credencial.configure(state="disabled")
+    if estado.boton_cargar_foto:
+        estado.boton_cargar_foto.configure(state="disabled")
+    if estado.boton_historial:
+        estado.boton_historial.configure(state="disabled")
     for item in estado.tree.get_children() if estado.tree else []:
         estado.tree.delete(item)
     if estado.combo_grupo:
         estado.combo_grupo["values"] = ["Todos"]
         estado.combo_grupo.set("Todos")
+    if estado.combo_estado_foto:
+        estado.combo_estado_foto.set("Todos")
     if estado.entry_buscar:
         estado.entry_buscar.delete(0, tk.END)
     actualizar_indicadores()
@@ -202,9 +209,17 @@ estado.combo_grupo.set("Todos")
 estado.combo_grupo.grid(row=0, column=1, padx=5, pady=3)
 estado.combo_grupo.bind("<<ComboboxSelected>>", actualizar_lista)
 
-tb.Label(frame_filtros, text="Buscar:").grid(row=1, column=0, sticky="w")
+tb.Label(frame_filtros, text="Foto:").grid(row=1, column=0, sticky="w")
+estado.combo_estado_foto = tb.Combobox(
+    frame_filtros, state="readonly", width=12,
+    values=["Todos", "Con foto", "Sin foto"])
+estado.combo_estado_foto.set("Todos")
+estado.combo_estado_foto.grid(row=1, column=1, padx=5, pady=3)
+estado.combo_estado_foto.bind("<<ComboboxSelected>>", actualizar_lista)
+
+tb.Label(frame_filtros, text="Buscar:").grid(row=2, column=0, sticky="w")
 estado.entry_buscar = tb.Entry(frame_filtros, width=16)
-estado.entry_buscar.grid(row=1, column=1, padx=5, pady=3)
+estado.entry_buscar.grid(row=2, column=1, padx=5, pady=3)
 estado.entry_buscar.bind("<KeyRelease>", actualizar_lista_debounced)
 
 frame_tree = tb.Frame(frame_izquierdo)
@@ -256,6 +271,18 @@ estado.boton_imprimir_credencial = tb.Button(
     bootstyle="success-outline", cursor="hand2",
     command=imprimir_alumno_seleccionado, state="disabled", width=22)
 estado.boton_imprimir_credencial.pack(side="left", padx=5, ipady=4)
+
+estado.boton_cargar_foto = tb.Button(
+    frame_acciones_alumno, text="📂 Cargar fotografía",
+    bootstyle="info-outline", cursor="hand2",
+    command=cargar_foto_archivo, state="disabled", width=20)
+estado.boton_cargar_foto.pack(side="left", padx=5, ipady=4)
+
+estado.boton_historial = tb.Button(
+    frame_acciones_alumno, text="🧾 Historial",
+    bootstyle="warning-outline", cursor="hand2",
+    command=mostrar_historial_alumno, state="disabled", width=14)
+estado.boton_historial.pack(side="left", padx=5, ipady=4)
 
 # Los controles se empaquetan desde abajo antes que el video para reservar
 # siempre su espacio, incluso en pantallas de menor altura.

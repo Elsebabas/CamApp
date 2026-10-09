@@ -25,6 +25,7 @@ def rutas_proyecto(carpeta):
         "fondos": os.path.join(carpeta, "diseno", "fondos"),
         "pdfs": os.path.join(carpeta, "pdfs"),
         "respaldos": os.path.join(carpeta, "respaldos_camapp"),
+        "historial": os.path.join(carpeta, "historial_impresiones.csv"),
     }
 
 

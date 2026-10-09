@@ -22,6 +22,7 @@ import os
 root = None
 tree = None
 combo_grupo = None
+combo_estado_foto = None
 entry_buscar = None
 etiqueta_excel = None
 etiqueta_alumno = None
@@ -34,6 +35,8 @@ boton_iniciar_camara = None
 boton_tomar_foto = None
 boton_detener_camara = None
 boton_imprimir_credencial = None
+boton_cargar_foto = None
+boton_historial = None
 id_notificacion_pendiente = None
 
 # ─── Proyecto activo ─────────────────────────────────────────────────────────
