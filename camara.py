@@ -41,6 +41,10 @@ def video_camara():
         estado.boton_tomar_foto.configure(state="normal")
     if estado.boton_detener_camara is not None:
         estado.boton_detener_camara.configure(state="normal")
+    # La vista previa del alumno ocupa espacio vertical; mientras el video
+    # está activo se oculta para conservar el encuadre completo de la cámara.
+    if estado.etiqueta_foto is not None:
+        estado.etiqueta_foto.pack_forget()
     notificar(f"Cámara {estado.camera_index} iniciada", "success")
     iniciar()
 
@@ -148,6 +152,8 @@ def detener_video():
         estado.boton_tomar_foto.configure(state="disabled")
     if estado.boton_detener_camara is not None:
         estado.boton_detener_camara.configure(state="disabled")
+    if estado.etiqueta_foto is not None:
+        estado.etiqueta_foto.pack(pady=(5, 8))
     notificar("Cámara detenida", "info")
 
 
