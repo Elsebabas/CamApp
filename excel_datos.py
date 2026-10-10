@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import ttkbootstrap as tb
 import pandas as pd
+from PIL import Image, ImageOps, ImageTk
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
@@ -389,6 +390,7 @@ def seleccionar_siguiente_pendiente(idx_recien_guardado):
 def actualizar_etiqueta_alumno():
     if estado.alumno_actual_idx is None or estado.df_alumnos is None:
         estado.etiqueta_alumno.configure(text="Sin alumno seleccionado")
+        actualizar_previsualizacion_foto()
         return
     fila = estado.df_alumnos.loc[estado.alumno_actual_idx]
     estado.etiqueta_alumno.configure(
@@ -397,6 +399,36 @@ def actualizar_etiqueta_alumno():
              f"Impresiones: {int(fila.get('Impresiones', 0) or 0)}  |  "
              f"Reposiciones: {int(fila.get('Reposiciones', 0) or 0)}"
     )
+    actualizar_previsualizacion_foto()
+
+
+def actualizar_previsualizacion_foto():
+    """Muestra la fotografía del alumno seleccionado, si existe."""
+    etiqueta = estado.etiqueta_foto
+    if etiqueta is None:
+        return
+    etiqueta.configure(image="", text="Sin fotografía")
+    etiqueta.image = None
+    if estado.alumno_actual_idx is None or estado.df_alumnos is None:
+        return
+    fila = estado.df_alumnos.loc[estado.alumno_actual_idx]
+    ruta = resolver_ruta_archivo(fila.get("RutaFoto", ""))
+    if not ruta or not os.path.isfile(ruta):
+        return
+    try:
+        with Image.open(ruta) as imagen:
+            imagen = ImageOps.contain(imagen.convert("RGB"), (180, 220))
+            lienzo = Image.new("RGB", (190, 230), "white")
+            posicion = (
+                (lienzo.width - imagen.width) // 2,
+                (lienzo.height - imagen.height) // 2,
+            )
+            lienzo.paste(imagen, posicion)
+        imagen_tk = ImageTk.PhotoImage(lienzo)
+        etiqueta.configure(image=imagen_tk, text="")
+        etiqueta.image = imagen_tk
+    except (OSError, ValueError):
+        etiqueta.configure(text="No se pudo cargar la fotografía")
 
 
 # ─── Alta manual de alumnos ──────────────────────────────────────────────────

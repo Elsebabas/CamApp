@@ -26,6 +26,7 @@ combo_estado_foto = None
 entry_buscar = None
 etiqueta_excel = None
 etiqueta_alumno = None
+etiqueta_foto = None
 etiqueta_video = None
 etiqueta_proyecto = None
 etiqueta_estado = None

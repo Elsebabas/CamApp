@@ -259,6 +259,11 @@ estado.etiqueta_alumno = tb.Label(
     font=("Segoe UI", 12, "bold"), anchor="center", justify="center")
 estado.etiqueta_alumno.pack(fill="x", padx=8)
 
+estado.etiqueta_foto = tk.Label(
+    frame_info_alumno, text="Sin fotografía", bg="#f8f9fa",
+    fg="#6c757d", width=24, height=9, anchor="center")
+estado.etiqueta_foto.pack(pady=(5, 8))
+
 frame_acciones_alumno = tb.Frame(frame_derecho)
 frame_acciones_alumno.pack(pady=(2, 8))
 
