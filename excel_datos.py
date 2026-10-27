@@ -240,6 +240,14 @@ def cargar_excel(ruta_forzada=None, preguntar_progreso=True):
     grupos = sorted([g for g in estado.df_alumnos["Grupo"].unique().tolist() if g])
     estado.combo_grupo["values"] = ["Todos"] + grupos
     estado.combo_grupo.set("Todos")
+    especialidades = sorted([e for e in estado.df_alumnos["Especialidad"].unique().tolist() if e])
+    turnos = sorted([t for t in estado.df_alumnos["Turno"].unique().tolist() if t])
+    if estado.combo_especialidad:
+        estado.combo_especialidad["values"] = ["Todos"] + especialidades
+        estado.combo_especialidad.set("Todos")
+    if estado.combo_turno:
+        estado.combo_turno["values"] = ["Todos"] + turnos
+        estado.combo_turno.set("Todos")
     if estado.combo_estado_foto:
         estado.combo_estado_foto.set("Todos")
     estado.entry_buscar.delete(0, tk.END)
@@ -312,6 +320,12 @@ def actualizar_lista(*_):
     df_filtrado = estado.df_alumnos
     if grupo_sel and grupo_sel != "Todos":
         df_filtrado = df_filtrado[df_filtrado["Grupo"] == grupo_sel]
+    especialidad_sel = estado.combo_especialidad.get() if estado.combo_especialidad else "Todos"
+    if especialidad_sel and especialidad_sel != "Todos":
+        df_filtrado = df_filtrado[df_filtrado["Especialidad"] == especialidad_sel]
+    turno_sel = estado.combo_turno.get() if estado.combo_turno else "Todos"
+    if turno_sel and turno_sel != "Todos":
+        df_filtrado = df_filtrado[df_filtrado["Turno"] == turno_sel]
     if estado_foto_sel == "Con foto":
         df_filtrado = df_filtrado[df_filtrado["FotoTomada"] == "Sí"]
     elif estado_foto_sel == "Sin foto":
@@ -545,6 +559,14 @@ def abrir_agregar_alumno():
             g for g in estado.df_alumnos["Grupo"].unique().tolist() if g)
         estado.combo_grupo["values"] = ["Todos"] + grupos
         estado.combo_grupo.set("Todos")
+        especialidades = sorted(
+            e for e in estado.df_alumnos["Especialidad"].unique().tolist() if e)
+        turnos = sorted(
+            t for t in estado.df_alumnos["Turno"].unique().tolist() if t)
+        if estado.combo_especialidad:
+            estado.combo_especialidad["values"] = ["Todos"] + especialidades
+        if estado.combo_turno:
+            estado.combo_turno["values"] = ["Todos"] + turnos
         estado.entry_buscar.delete(0, tk.END)
 
         carpeta_grupo = os.path.join(

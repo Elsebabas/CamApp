@@ -73,6 +73,10 @@ def limpiar_datos_actuales():
         estado.combo_grupo.set("Todos")
     if estado.combo_estado_foto:
         estado.combo_estado_foto.set("Todos")
+    for combo in (estado.combo_especialidad, estado.combo_turno):
+        if combo:
+            combo["values"] = ["Todos"]
+            combo.set("Todos")
     if estado.entry_buscar:
         estado.entry_buscar.delete(0, tk.END)
     actualizar_indicadores()
@@ -220,9 +224,23 @@ estado.combo_estado_foto.set("Todos")
 estado.combo_estado_foto.grid(row=1, column=1, padx=5, pady=3)
 estado.combo_estado_foto.bind("<<ComboboxSelected>>", actualizar_lista)
 
-tb.Label(frame_filtros, text="Buscar:").grid(row=2, column=0, sticky="w")
+tb.Label(frame_filtros, text="Especialidad:").grid(row=2, column=0, sticky="w")
+estado.combo_especialidad = tb.Combobox(
+    frame_filtros, state="readonly", width=20, values=["Todos"])
+estado.combo_especialidad.set("Todos")
+estado.combo_especialidad.grid(row=2, column=1, padx=5, pady=3)
+estado.combo_especialidad.bind("<<ComboboxSelected>>", actualizar_lista)
+
+tb.Label(frame_filtros, text="Turno:").grid(row=3, column=0, sticky="w")
+estado.combo_turno = tb.Combobox(
+    frame_filtros, state="readonly", width=12, values=["Todos"])
+estado.combo_turno.set("Todos")
+estado.combo_turno.grid(row=3, column=1, padx=5, pady=3)
+estado.combo_turno.bind("<<ComboboxSelected>>", actualizar_lista)
+
+tb.Label(frame_filtros, text="Buscar:").grid(row=4, column=0, sticky="w")
 estado.entry_buscar = tb.Entry(frame_filtros, width=16)
-estado.entry_buscar.grid(row=2, column=1, padx=5, pady=3)
+estado.entry_buscar.grid(row=4, column=1, padx=5, pady=3)
 estado.entry_buscar.bind("<KeyRelease>", actualizar_lista_debounced)
 
 frame_tree = tb.Frame(frame_izquierdo)
