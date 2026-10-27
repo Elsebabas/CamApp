@@ -209,38 +209,44 @@ frame_izquierdo.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
 
 frame_filtros = tb.Frame(frame_izquierdo)
 frame_filtros.pack(fill="x", pady=5)
+for columna in range(3):
+    frame_filtros.grid_columnconfigure(columna, weight=1)
 
-tb.Label(frame_filtros, text="Grupo:").grid(row=0, column=0, sticky="w")
-estado.combo_grupo = tb.Combobox(frame_filtros, state="readonly", width=12, values=["Todos"])
+def crear_filtro_superior(texto, fila, columna, control):
+    bloque = tb.Frame(frame_filtros)
+    bloque.grid(row=fila, column=columna, sticky="ew", padx=4, pady=2)
+    tb.Label(bloque, text=texto).pack(anchor="w")
+    control.pack(fill="x")
+    return control
+
+estado.combo_grupo = crear_filtro_superior(
+    "Grupo", 0, 0,
+    tb.Combobox(frame_filtros, state="readonly", width=12, values=["Todos"]))
 estado.combo_grupo.set("Todos")
-estado.combo_grupo.grid(row=0, column=1, padx=5, pady=3)
 estado.combo_grupo.bind("<<ComboboxSelected>>", actualizar_lista)
 
-tb.Label(frame_filtros, text="Foto:").grid(row=1, column=0, sticky="w")
-estado.combo_estado_foto = tb.Combobox(
-    frame_filtros, state="readonly", width=12,
-    values=["Todos", "Con foto", "Sin foto"])
+estado.combo_estado_foto = crear_filtro_superior(
+    "Foto", 0, 1,
+    tb.Combobox(frame_filtros, state="readonly", width=12,
+                values=["Todos", "Con foto", "Sin foto"]))
 estado.combo_estado_foto.set("Todos")
-estado.combo_estado_foto.grid(row=1, column=1, padx=5, pady=3)
 estado.combo_estado_foto.bind("<<ComboboxSelected>>", actualizar_lista)
 
-tb.Label(frame_filtros, text="Especialidad:").grid(row=2, column=0, sticky="w")
-estado.combo_especialidad = tb.Combobox(
-    frame_filtros, state="readonly", width=20, values=["Todos"])
-estado.combo_especialidad.set("Todos")
-estado.combo_especialidad.grid(row=2, column=1, padx=5, pady=3)
-estado.combo_especialidad.bind("<<ComboboxSelected>>", actualizar_lista)
-
-tb.Label(frame_filtros, text="Turno:").grid(row=3, column=0, sticky="w")
-estado.combo_turno = tb.Combobox(
-    frame_filtros, state="readonly", width=12, values=["Todos"])
+estado.combo_turno = crear_filtro_superior(
+    "Turno", 0, 2,
+    tb.Combobox(frame_filtros, state="readonly", width=12, values=["Todos"]))
 estado.combo_turno.set("Todos")
-estado.combo_turno.grid(row=3, column=1, padx=5, pady=3)
 estado.combo_turno.bind("<<ComboboxSelected>>", actualizar_lista)
 
-tb.Label(frame_filtros, text="Buscar:").grid(row=4, column=0, sticky="w")
-estado.entry_buscar = tb.Entry(frame_filtros, width=16)
-estado.entry_buscar.grid(row=4, column=1, padx=5, pady=3)
+estado.combo_especialidad = crear_filtro_superior(
+    "Especialidad", 1, 0,
+    tb.Combobox(frame_filtros, state="readonly", width=20, values=["Todos"]))
+estado.combo_especialidad.set("Todos")
+estado.combo_especialidad.bind("<<ComboboxSelected>>", actualizar_lista)
+
+estado.entry_buscar = crear_filtro_superior(
+    "Buscar", 1, 1,
+    tb.Entry(frame_filtros, width=16))
 estado.entry_buscar.bind("<KeyRelease>", actualizar_lista_debounced)
 
 frame_tree = tb.Frame(frame_izquierdo)
