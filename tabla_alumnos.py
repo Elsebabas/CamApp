@@ -28,8 +28,6 @@ class TablaAlumnos:
         self._ancho = self._ancho_total()
         self._render_pendiente = False
 
-        self.encabezado = tb.Frame(parent, bootstyle="dark")
-        self.encabezado.pack(side="top", fill="x")
         self.canvas = tk.Canvas(parent, highlightthickness=0, bg="#f8f9fa")
         self.canvas.pack(side="top", fill="both", expand=True)
         self.scroll_vertical = tb.Scrollbar(
@@ -49,7 +47,6 @@ class TablaAlumnos:
             (0, 0), window=self.contenido, anchor="nw")
         self.canvas.bind("<Configure>", self._ajustar_canvas)
         self.canvas.bind("<MouseWheel>", self._rueda_mouse)
-        self.canvas.bind_all("<MouseWheel>", self._rueda_mouse, add="+")
         self.canvas.bind("<Button-4>", lambda _event: self._desplazar_vertical("scroll", -3, "units"))
         self.canvas.bind("<Button-5>", lambda _event: self._desplazar_vertical("scroll", 3, "units"))
         self._crear_encabezado()
@@ -59,9 +56,8 @@ class TablaAlumnos:
         return sum(ancho for _, _, ancho in self.COLUMNAS) + 370
 
     def _crear_encabezado(self):
-        encabezado = self.encabezado
-        encabezado.configure(width=self._ancho, height=self.ALTO_ENCABEZADO)
-        encabezado.pack_propagate(False)
+        encabezado = tb.Frame(self.contenido, bootstyle="dark")
+        encabezado.place(x=0, y=0, width=self._ancho, height=self.ALTO_ENCABEZADO)
         for _columna, texto, ancho in self.COLUMNAS:
             tb.Label(
                 encabezado, text=texto, bootstyle="inverse-dark",
@@ -80,7 +76,7 @@ class TablaAlumnos:
         self._actualizar_region()
 
     def _actualizar_region(self):
-        alto = max(1, len(self.registros)) * self.ALTO_FILA
+        alto = self.ALTO_ENCABEZADO + max(1, len(self.registros)) * self.ALTO_FILA
         self.contenido.configure(width=self._ancho, height=alto)
         self.canvas.configure(scrollregion=(0, 0, self._ancho, alto))
         self._programar_render()
@@ -95,8 +91,8 @@ class TablaAlumnos:
         self._render_pendiente = False
         arriba = self.canvas.canvasy(0)
         abajo = arriba + max(1, self.canvas.winfo_height())
-        primero = max(0, int(arriba // self.ALTO_FILA) - 1)
-        ultimo = min(len(self.registros), int(abajo // self.ALTO_FILA) + 2)
+        primero = max(0, int((arriba - self.ALTO_ENCABEZADO) // self.ALTO_FILA) - 1)
+        ultimo = min(len(self.registros), int((abajo - self.ALTO_ENCABEZADO) // self.ALTO_FILA) + 2)
         visibles = {self.registros[i][0] for i in range(primero, max(primero, ultimo))}
         for iid, (fila, _botones) in list(self.filas.items()):
             if iid not in visibles:
@@ -106,7 +102,7 @@ class TablaAlumnos:
             iid, values, tags = self.registros[posicion]
             if iid in self.filas:
                 self.filas[iid][0].place_configure(
-                    y=posicion * self.ALTO_FILA)
+                    y=self.ALTO_ENCABEZADO + posicion * self.ALTO_FILA)
                 continue
             self._crear_fila(posicion, iid, values, tags)
 
@@ -136,7 +132,7 @@ class TablaAlumnos:
     def _crear_fila(self, posicion, iid, values, tags):
         con_foto = "con_foto" in tags
         fila = tb.Frame(self.contenido, bootstyle="success" if con_foto else "danger")
-        fila.place(x=0, y=posicion * self.ALTO_FILA,
+        fila.place(x=0, y=self.ALTO_ENCABEZADO + posicion * self.ALTO_FILA,
                    width=self._ancho, height=self.ALTO_FILA)
         for valor, (_columna, _texto, ancho) in zip(values, self.COLUMNAS):
             etiqueta = tb.Label(
@@ -212,6 +208,6 @@ class TablaAlumnos:
         posiciones = {registro[0]: posicion for posicion, registro in enumerate(self.registros)}
         if iid not in posiciones:
             return
-        y = posiciones[iid] * self.ALTO_FILA
+        y = self.ALTO_ENCABEZADO + posiciones[iid] * self.ALTO_FILA
         self.canvas.yview_moveto(max(0, y / max(1, self.contenido.winfo_reqheight())))
         self._programar_render()
