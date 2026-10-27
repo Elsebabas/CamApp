@@ -76,6 +76,9 @@ def limpiar_datos_actuales():
             filtro.set("Todos")
         else:
             filtro.delete(0, tk.END)
+            filtro.insert(0, filtro._texto_placeholder)
+            filtro.configure(foreground="#7b8794")
+            filtro._es_placeholder = True
     if estado.combo_estado_foto:
         estado.combo_estado_foto.set("Todos")
     if estado.entry_buscar:
@@ -261,20 +264,46 @@ for columna in columnas:
 # se escribe y las listas permiten elegir valores exactos.
 frame_filtros_tabla = tb.Frame(frame_tree)
 frame_filtros_tabla.pack(side="top", fill="x", pady=(0, 3))
+frame_filtros_tabla.configure(height=30)
+frame_filtros_tabla.pack_propagate(False)
 filtros_combo = {"especialidad", "grupo", "turno", "generacion", "semestre", "foto"}
-for columna in columnas:
-    ancho_filtro = max(8, anchos[columna] // 9)
+placeholders = {
+    "nombre": "Nombre", "apellido_paterno": "A. Paterno",
+    "apellido_materno": "A. Materno", "matricula": "Matrícula",
+}
+for posicion, columna in enumerate(columnas):
+    frame_filtros_tabla.grid_columnconfigure(posicion, minsize=anchos[columna])
     if columna in filtros_combo:
         valores = ["Todos"]
         filtro = tb.Combobox(
             frame_filtros_tabla, values=valores, state="readonly",
-            width=ancho_filtro)
+            width=max(8, anchos[columna] // 9))
         filtro.set("Todos")
         filtro.bind("<<ComboboxSelected>>", actualizar_lista)
     else:
-        filtro = tb.Entry(frame_filtros_tabla, width=ancho_filtro)
+        texto_placeholder = placeholders[columna]
+        filtro = tb.Entry(frame_filtros_tabla)
+        filtro.insert(0, texto_placeholder)
+        filtro.configure(foreground="#7b8794")
+        filtro._texto_placeholder = texto_placeholder
+        filtro._es_placeholder = True
+
+        def entrar_campo(event, campo=filtro):
+            if getattr(campo, "_es_placeholder", False):
+                campo.delete(0, tk.END)
+                campo.configure(foreground="")
+                campo._es_placeholder = False
+
+        def salir_campo(event, campo=filtro):
+            if not campo.get().strip():
+                campo.insert(0, campo._texto_placeholder)
+                campo.configure(foreground="#7b8794")
+                campo._es_placeholder = True
+
+        filtro.bind("<FocusIn>", entrar_campo)
+        filtro.bind("<FocusOut>", salir_campo)
         filtro.bind("<KeyRelease>", actualizar_lista_debounced)
-    filtro.pack(side="left", padx=1)
+    filtro.grid(row=0, column=posicion, sticky="ew", padx=1)
     estado.filtros_tabla[columna] = filtro
 
 estado.tree.tag_configure("con_foto", foreground="#2e8b57")
