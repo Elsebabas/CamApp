@@ -28,7 +28,6 @@ from camara import (
     video_camara, tomar_foto, cargar_foto_archivo, detener_video, cerrar_ventana,
     abrir_configuracion_camara,
 )
-from tabla_alumnos import TablaAlumnos
 from historial import mostrar_historial_alumno
 from diseñador_credencial import abrir_disenador_credencial
 from generador_credenciales import (
@@ -76,8 +75,6 @@ def limpiar_datos_actuales():
         estado.combo_estado_foto.set("Todos")
     if estado.entry_buscar:
         estado.entry_buscar.delete(0, tk.END)
-    if estado.frame_contenido:
-        estado.frame_contenido.pack_forget()
     actualizar_indicadores()
 
 
@@ -197,7 +194,6 @@ actualizar_indicadores()
 
 # Contenedor principal (paneles lado a lado)
 frame_contenido = tb.Frame(estado.root, padding=(15, 5))
-estado.frame_contenido = frame_contenido
 frame_contenido.pack(side="top", fill="both", expand=True)
 
 # Panel izquierdo: alumnos
@@ -228,8 +224,46 @@ estado.entry_buscar.bind("<KeyRelease>", actualizar_lista_debounced)
 
 frame_tree = tb.Frame(frame_izquierdo)
 frame_tree.pack(fill="both", expand=True, pady=5)
-estado.tabla_alumnos = TablaAlumnos(frame_tree)
-estado.tree = estado.tabla_alumnos
+
+columnas = (
+    "id", "nombre", "apellido_paterno", "apellido_materno", "matricula",
+    "especialidad", "grupo", "turno", "generacion", "semestre",
+    "credencial", "foto",
+)
+estado.tree = tb.Treeview(
+    frame_tree, columns=columnas, show="headings", height=26,
+    bootstyle="primary")
+encabezados = {
+    "id": "ID", "nombre": "Nombre", "apellido_paterno": "A. Paterno",
+    "apellido_materno": "A. Materno", "matricula": "Matrícula",
+    "especialidad": "Especialidad", "grupo": "Grupo", "turno": "Turno",
+    "generacion": "Generación", "semestre": "Semestre",
+    "credencial": "Edo. credencial", "foto": "Foto",
+}
+anchos = {
+    "id": 48, "nombre": 150, "apellido_paterno": 130,
+    "apellido_materno": 130, "matricula": 125, "especialidad": 150,
+    "grupo": 70, "turno": 95, "generacion": 100, "semestre": 75,
+    "credencial": 120, "foto": 90,
+}
+for columna in columnas:
+    estado.tree.heading(columna, text=encabezados[columna])
+    estado.tree.column(columna, width=anchos[columna], minwidth=anchos[columna],
+                      stretch=False, anchor="center")
+estado.tree.tag_configure("con_foto", foreground="#2e8b57")
+estado.tree.tag_configure("sin_foto", foreground="#c0392b")
+estado.tree.pack(side="top", fill="both", expand=True)
+estado.tree.bind("<<TreeviewSelect>>", seleccionar_alumno)
+
+scrollbar_tree = tb.Scrollbar(frame_tree, orient="vertical", command=estado.tree.yview,
+                               bootstyle="round-primary")
+estado.tree.configure(yscrollcommand=scrollbar_tree.set)
+scrollbar_tree.pack(side="right", fill="y")
+scrollbar_horizontal = tb.Scrollbar(
+    frame_tree, orient="horizontal", command=estado.tree.xview,
+    bootstyle="round-primary")
+estado.tree.configure(xscrollcommand=scrollbar_horizontal.set)
+scrollbar_horizontal.pack(side="bottom", fill="x")
 
 # Panel derecho: cámara
 frame_derecho = tb.Labelframe(frame_contenido, text="Cámara", bootstyle="primary", padding=12)
@@ -306,15 +340,6 @@ tb.Button(
 
 estado.etiqueta_video = tk.Label(frame_derecho, bg="black")
 estado.etiqueta_video.pack(side="top", pady=5)
-
-# La cámara se abre desde la acción de cada fila en una ventana independiente.
-# Este panel legado queda oculto para conservar sus referencias internas durante
-# la transición y no ocupar espacio en la vista principal.
-frame_derecho.pack_forget()
-
-# Al arrancar no se muestra ninguna tabla hasta abrir un proyecto o cargar un
-# Excel; las herramientas superiores permanecen disponibles.
-frame_contenido.pack_forget()
 
 
 def manejar_tecla_espacio(event):
