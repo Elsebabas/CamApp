@@ -176,19 +176,7 @@ def cargar_excel(ruta_forzada=None, preguntar_progreso=True):
     )
 
     try:
-        extension = os.path.splitext(ruta_leer)[1].lower()
-        if extension in (".xlsx", ".xlsm"):
-            # Fijar el motor evita que pandas interprete un libro OOXML como
-            # un archivo ZIP genérico y busque la opción inexistente
-            # ``io.excel.zip.reader``.
-            df = pd.read_excel(ruta_leer, dtype=str, engine="openpyxl")
-        elif extension == ".xls":
-            df = pd.read_excel(ruta_leer, dtype=str, engine="xlrd")
-        else:
-            raise ValueError(
-                "El archivo seleccionado no tiene una extensión de Excel válida. "
-                "Usa un archivo .xlsx, .xlsm o .xls."
-            )
+        df = pd.read_excel(ruta_leer, dtype=str)
     except Exception as e:
         messagebox.showerror("Error al leer el Excel", str(e))
         return
