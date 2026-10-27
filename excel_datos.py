@@ -147,7 +147,7 @@ def cargar_excel(ruta_forzada=None, preguntar_progreso=True):
         filetypes=[("Archivos Excel", "*.xlsx *.xls")]
     )
     if not ruta:
-        return False
+        return
 
     if estado.ruta_proyecto:
         ruta_trabajo_posible = estado.ruta_excel_trabajo
@@ -190,13 +190,8 @@ def cargar_excel(ruta_forzada=None, preguntar_progreso=True):
                 "Usa un archivo .xlsx, .xlsm o .xls."
             )
     except Exception as e:
-        messagebox.showerror(
-            "Error al leer el Excel",
-            "El archivo no es un libro de Excel válido o está dañado.\n\n"
-            f"Detalle: {e}\n\n"
-            "Abre el archivo original en Excel y guárdalo nuevamente como .xlsx, "
-            "o selecciona otro archivo.")
-        return False
+        messagebox.showerror("Error al leer el Excel", str(e))
+        return
 
     df.columns = [str(c).strip() for c in df.columns]
 
@@ -208,7 +203,7 @@ def cargar_excel(ruta_forzada=None, preguntar_progreso=True):
             + ", ".join(faltantes) +
             "\n\nRevisa los encabezados y vuelve a intentar."
         )
-        return False
+        return
 
     df = df.fillna("")
     normalizar_datos_alumnos(df)
@@ -222,7 +217,7 @@ def cargar_excel(ruta_forzada=None, preguntar_progreso=True):
             "\n\nCorrige el Excel (matrículas y CURPs deben ser únicos y no estar "
             "vacíos) y vuelve a intentar."
         )
-        return False
+        return
 
     # Siempre se recalculan para actualizar también archivos de trabajo antiguos.
     df["Apellidos"] = (
@@ -277,7 +272,6 @@ def cargar_excel(ruta_forzada=None, preguntar_progreso=True):
     guardar_excel(mostrar_aviso=False)
     actualizar_lista()
     actualizar_etiqueta_alumno()
-    return True
 
 
 def actualizar_etiqueta_excel():
