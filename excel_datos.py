@@ -240,7 +240,6 @@ def cargar_excel(ruta_forzada=None, preguntar_progreso=True):
     grupos = sorted([g for g in estado.df_alumnos["Grupo"].unique().tolist() if g])
     estado.combo_grupo["values"] = ["Todos"] + grupos
     estado.combo_grupo.set("Todos")
-    actualizar_opciones_filtros()
     if estado.combo_estado_foto:
         estado.combo_estado_foto.set("Todos")
     estado.entry_buscar.delete(0, tk.END)
@@ -298,23 +297,6 @@ def actualizar_lista_debounced(*_):
     estado.id_busqueda_pendiente = estado.root.after(250, actualizar_lista)
 
 
-def actualizar_opciones_filtros():
-    """Actualiza las listas desplegables que dependen del Excel cargado."""
-    if estado.df_alumnos is None:
-        return
-    for columna in ("especialidad", "grupo", "turno", "generacion", "semestre"):
-        combo = estado.filtros_tabla.get(columna)
-        nombre = {
-            "especialidad": "Especialidad", "grupo": "Grupo", "turno": "Turno",
-            "generacion": "Generacion", "semestre": "Semestre",
-        }[columna]
-        if combo is not None and nombre in estado.df_alumnos.columns:
-            valores = sorted({str(valor) for valor in estado.df_alumnos[nombre].dropna() if str(valor).strip()})
-            combo.configure(values=["Todos"] + valores)
-            if not combo.get():
-                combo.set("Todos")
-
-
 def actualizar_lista(*_):
     for item in estado.tree.get_children():
         estado.tree.delete(item)
@@ -341,31 +323,6 @@ def actualizar_lista(*_):
             df_filtrado["Matricula"].str.lower().str.contains(texto_busqueda, na=False)
         )
         df_filtrado = df_filtrado[mask]
-
-    filtros = estado.filtros_tabla
-    for clave, nombre in {
-        "nombre": "Nombre", "apellido_paterno": "Apellido Paterno",
-        "apellido_materno": "Apellido Materno", "matricula": "Matricula",
-    }.items():
-        campo = filtros.get(clave)
-        texto = campo.get().strip().lower() if campo is not None else ""
-        if texto:
-            df_filtrado = df_filtrado[
-                df_filtrado[nombre].astype(str).str.lower().str.contains(texto, na=False)]
-    for clave, nombre in {
-        "especialidad": "Especialidad", "grupo": "Grupo", "turno": "Turno",
-        "generacion": "Generacion", "semestre": "Semestre",
-    }.items():
-        combo = filtros.get(clave)
-        valor = combo.get() if combo is not None else "Todos"
-        if valor and valor != "Todos":
-            df_filtrado = df_filtrado[df_filtrado[nombre].astype(str) == valor]
-    filtro_foto = filtros.get("foto")
-    valor_foto = filtro_foto.get() if filtro_foto is not None else "Todos"
-    if valor_foto == "Con foto":
-        df_filtrado = df_filtrado[df_filtrado["FotoTomada"] == "Sí"]
-    elif valor_foto == "Sin foto":
-        df_filtrado = df_filtrado[df_filtrado["FotoTomada"] != "Sí"]
 
     for idx, fila in df_filtrado.iterrows():
         tiene_foto = fila["FotoTomada"] == "Sí"
@@ -588,7 +545,6 @@ def abrir_agregar_alumno():
             g for g in estado.df_alumnos["Grupo"].unique().tolist() if g)
         estado.combo_grupo["values"] = ["Todos"] + grupos
         estado.combo_grupo.set("Todos")
-        actualizar_opciones_filtros()
         estado.entry_buscar.delete(0, tk.END)
 
         carpeta_grupo = os.path.join(
