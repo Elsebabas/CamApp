@@ -71,6 +71,11 @@ def limpiar_datos_actuales():
     if estado.combo_grupo:
         estado.combo_grupo["values"] = ["Todos"]
         estado.combo_grupo.set("Todos")
+    for filtro in estado.filtros_tabla.values():
+        if isinstance(filtro, ttk.Combobox):
+            filtro.set("Todos")
+        else:
+            filtro.delete(0, tk.END)
     if estado.combo_estado_foto:
         estado.combo_estado_foto.set("Todos")
     if estado.entry_buscar:
@@ -251,6 +256,27 @@ for columna in columnas:
     estado.tree.heading(columna, text=encabezados[columna])
     estado.tree.column(columna, width=anchos[columna], minwidth=anchos[columna],
                       stretch=False, anchor="center")
+
+# Filtros alineados con los encabezados. Los campos de texto filtran mientras
+# se escribe y las listas permiten elegir valores exactos.
+frame_filtros_tabla = tb.Frame(frame_tree)
+frame_filtros_tabla.pack(side="top", fill="x", pady=(0, 3))
+filtros_combo = {"especialidad", "grupo", "turno", "generacion", "semestre", "foto"}
+for columna in columnas:
+    ancho_filtro = max(8, anchos[columna] // 9)
+    if columna in filtros_combo:
+        valores = ["Todos"]
+        filtro = tb.Combobox(
+            frame_filtros_tabla, values=valores, state="readonly",
+            width=ancho_filtro)
+        filtro.set("Todos")
+        filtro.bind("<<ComboboxSelected>>", actualizar_lista)
+    else:
+        filtro = tb.Entry(frame_filtros_tabla, width=ancho_filtro)
+        filtro.bind("<KeyRelease>", actualizar_lista_debounced)
+    filtro.pack(side="left", padx=1)
+    estado.filtros_tabla[columna] = filtro
+
 estado.tree.tag_configure("con_foto", foreground="#2e8b57")
 estado.tree.tag_configure("sin_foto", foreground="#c0392b")
 estado.tree.pack(side="top", fill="both", expand=True)

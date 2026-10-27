@@ -24,6 +24,7 @@ tree = None
 combo_grupo = None
 combo_estado_foto = None
 entry_buscar = None
+filtros_tabla = {}
 etiqueta_excel = None
 etiqueta_alumno = None
 etiqueta_foto = None
