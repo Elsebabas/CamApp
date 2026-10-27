@@ -349,8 +349,6 @@ def actualizar_lista(*_):
     }.items():
         campo = filtros.get(clave)
         texto = campo.get().strip().lower() if campo is not None else ""
-        if campo is not None and getattr(campo, "_es_placeholder", False):
-            texto = ""
         if texto:
             df_filtrado = df_filtrado[
                 df_filtrado[nombre].astype(str).str.lower().str.contains(texto, na=False)]
