@@ -21,6 +21,8 @@ import os
 # ─── Referencias a widgets (asignadas por main.py al construir la ventana) ───
 root = None
 tree = None
+frame_contenido = None
+tabla_alumnos = None
 combo_grupo = None
 combo_estado_foto = None
 entry_buscar = None
@@ -49,6 +51,7 @@ video = None
 camera_index = 0
 espejo_camara = False
 ventana_foto_activa = None    # Referencia a la ventana de preview de foto abierta (o None)
+ventana_camara = None         # Ventana independiente de cámara del alumno activo
 
 # ─── Estado de los datos de alumnos ──────────────────────────────────────────
 df_alumnos = None             # DataFrame con los datos del Excel cargado

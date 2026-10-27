@@ -250,6 +250,8 @@ def cargar_excel(ruta_forzada=None, preguntar_progreso=True):
         os.makedirs(carpeta_grupo, exist_ok=True)
 
     guardar_excel(mostrar_aviso=False)
+    if estado.frame_contenido is not None:
+        estado.frame_contenido.pack(side="top", fill="both", expand=True)
     actualizar_lista()
     actualizar_etiqueta_alumno()
 
@@ -327,14 +329,12 @@ def actualizar_lista(*_):
     for idx, fila in df_filtrado.iterrows():
         tiene_foto = fila["FotoTomada"] == "Sí"
         texto_estado = "✔ Sí" if tiene_foto else "— No"
-        texto_credencial = (
-            "Con credencial" if tiene_foto else "Pendiente")
         tag = "con_foto" if tiene_foto else "sin_foto"
         estado.tree.insert("", "end", iid=str(idx), values=(
-            idx + 1, fila["Nombre"], fila["Apellido Paterno"],
-            fila["Apellido Materno"], fila["Matricula"], fila["Especialidad"],
+            fila["Matricula"], fila["Nombre"], fila["Apellido Paterno"],
+            fila["Apellido Materno"], fila["Especialidad"],
             fila["Grupo"], fila["Turno"], fila["Generacion"], fila["Semestre"],
-            texto_credencial, texto_estado,
+            texto_estado,
         ), tags=(tag,))
     actualizar_indicadores()
 
@@ -537,6 +537,9 @@ def abrir_agregar_alumno():
             ]
             estado.df_alumnos = pd.DataFrame(columns=columnas)
 
+        if estado.frame_contenido is not None:
+            estado.frame_contenido.pack(side="top", fill="both", expand=True)
+
         estado.df_alumnos = pd.concat(
             [estado.df_alumnos, pd.DataFrame([fila_nueva])],
             ignore_index=True,
@@ -564,6 +567,7 @@ def abrir_agregar_alumno():
             f"{fila_nueva['NombreCompleto']} fue agregado correctamente",
             "success")
 
+
     frame_botones = tb.Frame(ventana)
     frame_botones.grid(
         row=len(campos) + 2, column=0, columnspan=2, pady=(14, 18))
@@ -578,6 +582,39 @@ def abrir_agregar_alumno():
 
     ventana.bind("<Return>", lambda event: guardar_alumno())
     ventana.bind("<Escape>", lambda event: ventana.destroy())
+
+
+# ─── Eliminación de alumnos ───────────────────────────────────────────────
+def eliminar_alumno(indice=None):
+    """Elimina un alumno después de confirmarlo y actualiza el Excel."""
+    if indice is None:
+        indice = estado.alumno_actual_idx
+    if estado.df_alumnos is None or indice is None or indice not in estado.df_alumnos.index:
+        messagebox.showwarning("Sin alumno", "Selecciona un alumno primero.")
+        return
+    fila = estado.df_alumnos.loc[indice]
+    if not messagebox.askyesno(
+            "Eliminar alumno",
+            f"¿Deseas eliminar a {fila['NombreCompleto']}?\n\n"
+            "Esta acción quitará sus datos del Excel."):
+        return
+    ruta_foto = resolver_ruta_archivo(fila.get("RutaFoto", ""))
+    eliminar_foto = bool(
+        ruta_foto and os.path.isfile(ruta_foto)
+        and messagebox.askyesno(
+            "Eliminar fotografía",
+            "¿También deseas eliminar la fotografía guardada?"))
+    estado.df_alumnos = estado.df_alumnos.drop(index=indice).reset_index(drop=True)
+    estado.alumno_actual_idx = None
+    if eliminar_foto:
+        try:
+            os.remove(ruta_foto)
+        except OSError:
+            pass
+    guardar_excel(mostrar_aviso=False)
+    actualizar_lista()
+    actualizar_etiqueta_alumno()
+    notificar("Alumno eliminado", "success")
 
 
 # ─── Editor de datos del alumno ──────────────────────────────────────────────

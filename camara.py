@@ -49,6 +49,65 @@ def video_camara():
     iniciar()
 
 
+def abrir_camara_alumno(indice):
+    """Abre la cámara del alumno en una ventana independiente."""
+    if estado.df_alumnos is None or indice not in estado.df_alumnos.index:
+        messagebox.showwarning("Alumno no disponible", "No se encontró el alumno seleccionado.")
+        return
+    if estado.ventana_camara is not None:
+        estado.ventana_camara.lift()
+        return
+
+    estado.alumno_actual_idx = indice
+    fila = estado.df_alumnos.loc[indice]
+    ventana = tk.Toplevel(estado.root)
+    ventana.title(f"Cámara · {fila['NombreCompleto']}")
+    ventana.geometry("1050x760")
+    ventana.minsize(760, 560)
+    ventana.transient(estado.root)
+    estado.ventana_camara = ventana
+
+    tb.Label(
+        ventana,
+        text=f"{fila['NombreCompleto']}  ·  Matrícula: {fila['Matricula']}  ·  Grupo: {fila['Grupo']}",
+        font=("Segoe UI", 12, "bold"), bootstyle="primary",
+    ).pack(fill="x", padx=16, pady=(14, 8))
+
+    estado.etiqueta_video = tk.Label(ventana, bg="black")
+    estado.etiqueta_video.pack(fill="both", expand=True, padx=16, pady=8)
+
+    controles = tb.Frame(ventana)
+    controles.pack(pady=(4, 8))
+    estado.boton_iniciar_camara = tb.Button(
+        controles, text="▶ Iniciar Cámara", bootstyle="success",
+        cursor="hand2", command=video_camara, width=17)
+    estado.boton_iniciar_camara.grid(row=0, column=0, padx=6, ipady=6)
+    estado.boton_tomar_foto = tb.Button(
+        controles, text="📷 Tomar Fotografía", bootstyle="primary",
+        cursor="hand2", command=tomar_foto, width=17, state="disabled")
+    estado.boton_tomar_foto.grid(row=0, column=1, padx=6, ipady=6)
+    estado.boton_detener_camara = tb.Button(
+        controles, text="■ Detener Cámara", bootstyle="warning",
+        cursor="hand2", command=detener_video, width=17, state="disabled")
+    estado.boton_detener_camara.grid(row=0, column=2, padx=6, ipady=6)
+    tb.Button(
+        controles, text="⚙ Configurar Cámara", bootstyle="secondary-outline",
+        cursor="hand2", command=abrir_configuracion_camara, width=19,
+    ).grid(row=1, column=0, columnspan=3, pady=(8, 0), ipady=4)
+
+    def cerrar_camara():
+        detener_video()
+        estado.ventana_camara = None
+        estado.etiqueta_video = None
+        estado.boton_iniciar_camara = None
+        estado.boton_tomar_foto = None
+        estado.boton_detener_camara = None
+        ventana.destroy()
+
+    ventana.protocol("WM_DELETE_WINDOW", cerrar_camara)
+    ventana.focus_set()
+
+
 def abrir_configuracion_camara():
     ventana = tk.Toplevel(estado.root)
     ventana.title("Configurar Cámara")
