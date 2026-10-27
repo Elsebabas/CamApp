@@ -212,41 +212,43 @@ frame_filtros.pack(fill="x", pady=5)
 for columna in range(3):
     frame_filtros.grid_columnconfigure(columna, weight=1)
 
-def crear_filtro_superior(texto, fila, columna, control):
+def crear_filtro_superior(texto, fila, columna, crear_control):
     bloque = tb.Frame(frame_filtros)
     bloque.grid(row=fila, column=columna, sticky="ew", padx=4, pady=2)
     tb.Label(bloque, text=texto).pack(anchor="w")
+    control = crear_control(bloque)
     control.pack(fill="x")
     return control
 
 estado.combo_grupo = crear_filtro_superior(
     "Grupo", 0, 0,
-    tb.Combobox(frame_filtros, state="readonly", width=12, values=["Todos"]))
+    lambda parent: tb.Combobox(parent, state="readonly", width=12, values=["Todos"]))
 estado.combo_grupo.set("Todos")
 estado.combo_grupo.bind("<<ComboboxSelected>>", actualizar_lista)
 
 estado.combo_estado_foto = crear_filtro_superior(
     "Foto", 0, 1,
-    tb.Combobox(frame_filtros, state="readonly", width=12,
-                values=["Todos", "Con foto", "Sin foto"]))
+    lambda parent: tb.Combobox(
+        parent, state="readonly", width=12,
+        values=["Todos", "Con foto", "Sin foto"]))
 estado.combo_estado_foto.set("Todos")
 estado.combo_estado_foto.bind("<<ComboboxSelected>>", actualizar_lista)
 
 estado.combo_turno = crear_filtro_superior(
     "Turno", 0, 2,
-    tb.Combobox(frame_filtros, state="readonly", width=12, values=["Todos"]))
+    lambda parent: tb.Combobox(parent, state="readonly", width=12, values=["Todos"]))
 estado.combo_turno.set("Todos")
 estado.combo_turno.bind("<<ComboboxSelected>>", actualizar_lista)
 
 estado.combo_especialidad = crear_filtro_superior(
     "Especialidad", 1, 0,
-    tb.Combobox(frame_filtros, state="readonly", width=20, values=["Todos"]))
+    lambda parent: tb.Combobox(parent, state="readonly", width=20, values=["Todos"]))
 estado.combo_especialidad.set("Todos")
 estado.combo_especialidad.bind("<<ComboboxSelected>>", actualizar_lista)
 
 estado.entry_buscar = crear_filtro_superior(
     "Buscar", 1, 1,
-    tb.Entry(frame_filtros, width=16))
+    lambda parent: tb.Entry(parent, width=16))
 estado.entry_buscar.bind("<KeyRelease>", actualizar_lista_debounced)
 
 frame_tree = tb.Frame(frame_izquierdo)
