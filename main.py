@@ -198,7 +198,7 @@ frame_contenido.pack(side="top", fill="both", expand=True)
 
 # Panel izquierdo: alumnos
 frame_izquierdo = tb.Labelframe(frame_contenido, text="Alumnos", bootstyle="primary", padding=12)
-frame_izquierdo.pack(side="left", fill="y", padx=(0, 12))
+frame_izquierdo.pack(side="left", fill="both", expand=True, padx=(0, 12))
 
 frame_filtros = tb.Frame(frame_izquierdo)
 frame_filtros.pack(fill="x", pady=5)
@@ -223,29 +223,47 @@ estado.entry_buscar.grid(row=2, column=1, padx=5, pady=3)
 estado.entry_buscar.bind("<KeyRelease>", actualizar_lista_debounced)
 
 frame_tree = tb.Frame(frame_izquierdo)
-frame_tree.pack(fill="y", pady=5)
+frame_tree.pack(fill="both", expand=True, pady=5)
 
-columnas = ("matricula", "nombre", "grupo", "turno", "foto")
-estado.tree = tb.Treeview(frame_tree, columns=columnas, show="headings", height=26, bootstyle="primary")
-estado.tree.heading("matricula", text="Matrícula")
-estado.tree.heading("nombre", text="Nombre completo")
-estado.tree.heading("grupo", text="Grupo")
-estado.tree.heading("turno", text="Turno")
-estado.tree.heading("foto", text="Foto")
-estado.tree.column("matricula", width=85)
-estado.tree.column("nombre", width=220)
-estado.tree.column("grupo", width=60)
-estado.tree.column("turno", width=70)
-estado.tree.column("foto", width=55)
+columnas = (
+    "id", "nombre", "apellido_paterno", "apellido_materno", "matricula",
+    "especialidad", "grupo", "turno", "generacion", "semestre",
+    "credencial", "foto",
+)
+estado.tree = tb.Treeview(
+    frame_tree, columns=columnas, show="headings", height=26,
+    bootstyle="primary")
+encabezados = {
+    "id": "ID", "nombre": "Nombre", "apellido_paterno": "A. Paterno",
+    "apellido_materno": "A. Materno", "matricula": "Matrícula",
+    "especialidad": "Especialidad", "grupo": "Grupo", "turno": "Turno",
+    "generacion": "Generación", "semestre": "Semestre",
+    "credencial": "Edo. credencial", "foto": "Foto",
+}
+anchos = {
+    "id": 48, "nombre": 150, "apellido_paterno": 130,
+    "apellido_materno": 130, "matricula": 125, "especialidad": 150,
+    "grupo": 70, "turno": 95, "generacion": 100, "semestre": 75,
+    "credencial": 120, "foto": 90,
+}
+for columna in columnas:
+    estado.tree.heading(columna, text=encabezados[columna])
+    estado.tree.column(columna, width=anchos[columna], minwidth=anchos[columna],
+                      stretch=False, anchor="center")
 estado.tree.tag_configure("con_foto", foreground="#2e8b57")
 estado.tree.tag_configure("sin_foto", foreground="#c0392b")
-estado.tree.pack(side="left")
+estado.tree.pack(side="top", fill="both", expand=True)
 estado.tree.bind("<<TreeviewSelect>>", seleccionar_alumno)
 
 scrollbar_tree = tb.Scrollbar(frame_tree, orient="vertical", command=estado.tree.yview,
                                bootstyle="round-primary")
 estado.tree.configure(yscrollcommand=scrollbar_tree.set)
-scrollbar_tree.pack(side="left", fill="y")
+scrollbar_tree.pack(side="right", fill="y")
+scrollbar_horizontal = tb.Scrollbar(
+    frame_tree, orient="horizontal", command=estado.tree.xview,
+    bootstyle="round-primary")
+estado.tree.configure(xscrollcommand=scrollbar_horizontal.set)
+scrollbar_horizontal.pack(side="bottom", fill="x")
 
 # Panel derecho: cámara
 frame_derecho = tb.Labelframe(frame_contenido, text="Cámara", bootstyle="primary", padding=12)
