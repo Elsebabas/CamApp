@@ -125,7 +125,10 @@ def abrir_proyecto():
         limpiar_datos_actuales()
         reflejar_proyecto_activo()
         if os.path.isfile(rutas["excel"]):
-            cargar_excel(ruta_forzada=rutas["excel"], preguntar_progreso=False)
+            cargado = cargar_excel(
+                ruta_forzada=rutas["excel"], preguntar_progreso=False)
+            if not cargado:
+                return
         else:
             actualizar_etiqueta_excel()
             actualizar_etiqueta_alumno()
