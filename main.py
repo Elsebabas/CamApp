@@ -195,10 +195,13 @@ actualizar_indicadores()
 # Contenedor principal (paneles lado a lado)
 frame_contenido = tb.Frame(estado.root, padding=(15, 5))
 frame_contenido.pack(side="top", fill="both", expand=True)
+frame_contenido.grid_columnconfigure(0, weight=1, uniform="paneles")
+frame_contenido.grid_columnconfigure(1, weight=1, uniform="paneles")
+frame_contenido.grid_rowconfigure(0, weight=1)
 
 # Panel izquierdo: alumnos
 frame_izquierdo = tb.Labelframe(frame_contenido, text="Alumnos", bootstyle="primary", padding=12)
-frame_izquierdo.pack(side="left", fill="both", expand=True, padx=(0, 12))
+frame_izquierdo.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
 
 frame_filtros = tb.Frame(frame_izquierdo)
 frame_filtros.pack(fill="x", pady=5)
@@ -226,25 +229,23 @@ frame_tree = tb.Frame(frame_izquierdo)
 frame_tree.pack(fill="both", expand=True, pady=5)
 
 columnas = (
-    "id", "nombre", "apellido_paterno", "apellido_materno", "matricula",
-    "especialidad", "grupo", "turno", "generacion", "semestre",
-    "credencial", "foto",
+    "nombre", "apellido_paterno", "apellido_materno", "matricula",
+    "especialidad", "grupo", "turno", "generacion", "semestre", "foto",
 )
 estado.tree = tb.Treeview(
     frame_tree, columns=columnas, show="headings", height=26,
     bootstyle="primary")
 encabezados = {
-    "id": "ID", "nombre": "Nombre", "apellido_paterno": "A. Paterno",
+    "nombre": "Nombre", "apellido_paterno": "A. Paterno",
     "apellido_materno": "A. Materno", "matricula": "Matrícula",
     "especialidad": "Especialidad", "grupo": "Grupo", "turno": "Turno",
-    "generacion": "Generación", "semestre": "Semestre",
-    "credencial": "Edo. credencial", "foto": "Foto",
+    "generacion": "Generación", "semestre": "Semestre", "foto": "Foto",
 }
 anchos = {
-    "id": 48, "nombre": 150, "apellido_paterno": 130,
+    "nombre": 150, "apellido_paterno": 130,
     "apellido_materno": 130, "matricula": 125, "especialidad": 150,
     "grupo": 70, "turno": 95, "generacion": 100, "semestre": 75,
-    "credencial": 120, "foto": 90,
+    "foto": 90,
 }
 for columna in columnas:
     estado.tree.heading(columna, text=encabezados[columna])
@@ -267,7 +268,7 @@ scrollbar_horizontal.pack(side="bottom", fill="x")
 
 # Panel derecho: cámara
 frame_derecho = tb.Labelframe(frame_contenido, text="Cámara", bootstyle="primary", padding=12)
-frame_derecho.pack(side="left", fill="both", expand=True)
+frame_derecho.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
 
 frame_info_alumno = tb.Frame(frame_derecho)
 frame_info_alumno.pack(fill="x", pady=(5, 2))

@@ -327,14 +327,12 @@ def actualizar_lista(*_):
     for idx, fila in df_filtrado.iterrows():
         tiene_foto = fila["FotoTomada"] == "Sí"
         texto_estado = "✔ Sí" if tiene_foto else "— No"
-        texto_credencial = (
-            "Con credencial" if tiene_foto else "Pendiente")
         tag = "con_foto" if tiene_foto else "sin_foto"
         estado.tree.insert("", "end", iid=str(idx), values=(
-            idx + 1, fila["Nombre"], fila["Apellido Paterno"],
-            fila["Apellido Materno"], fila["Matricula"], fila["Especialidad"],
+            fila["Nombre"], fila["Apellido Paterno"], fila["Apellido Materno"],
+            fila["Matricula"], fila["Especialidad"],
             fila["Grupo"], fila["Turno"], fila["Generacion"], fila["Semestre"],
-            texto_credencial, texto_estado,
+            texto_estado,
         ), tags=(tag,))
     actualizar_indicadores()
 
