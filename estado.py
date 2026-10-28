@@ -29,6 +29,7 @@ entry_buscar = None
 etiqueta_excel = None
 etiqueta_alumno = None
 etiqueta_foto = None
+frame_info_alumno = None
 frame_editor_alumno = None
 entradas_editor_alumno = {}
 boton_guardar_datos = None

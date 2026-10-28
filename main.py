@@ -305,6 +305,7 @@ frame_derecho = tb.Labelframe(frame_contenido, text="Cámara", bootstyle="primar
 frame_derecho.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
 
 frame_info_alumno = tb.Frame(frame_derecho)
+estado.frame_info_alumno = frame_info_alumno
 
 estado.etiqueta_alumno = tb.Label(
     frame_info_alumno, text="Sin alumno seleccionado",
