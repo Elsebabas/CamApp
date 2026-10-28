@@ -45,6 +45,9 @@ def video_camara():
     # cámara se oculta toda la vista previa para que el video pueda crecer.
     if estado.frame_info_alumno is not None:
         estado.frame_info_alumno.pack_forget()
+    if estado.etiqueta_video is not None:
+        estado.etiqueta_video.pack(
+            side="top", fill="both", expand=True, padx=5, pady=5)
     notificar(f"Cámara {estado.camera_index} iniciada", "success")
     iniciar()
 
@@ -158,8 +161,9 @@ def detener_video():
     if estado.boton_detener_camara is not None:
         estado.boton_detener_camara.configure(state="disabled")
     if estado.frame_info_alumno is not None and estado.etiqueta_video is not None:
+        estado.etiqueta_video.pack_forget()
         estado.frame_info_alumno.pack(
-            before=estado.etiqueta_video, fill="x", pady=(4, 2))
+            fill="both", expand=True, pady=(4, 2))
     notificar("Cámara detenida", "info")
 
 
