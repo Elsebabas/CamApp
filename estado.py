@@ -23,9 +23,16 @@ root = None
 tree = None
 combo_grupo = None
 combo_estado_foto = None
+combo_especialidad = None
+combo_turno = None
 entry_buscar = None
 etiqueta_excel = None
 etiqueta_alumno = None
+etiqueta_foto = None
+frame_info_alumno = None
+frame_editor_alumno = None
+entradas_editor_alumno = {}
+boton_guardar_datos = None
 etiqueta_video = None
 etiqueta_proyecto = None
 etiqueta_estado = None
@@ -37,6 +44,7 @@ boton_detener_camara = None
 boton_imprimir_credencial = None
 boton_cargar_foto = None
 boton_historial = None
+boton_eliminar_alumno = None
 id_notificacion_pendiente = None
 
 # ─── Proyecto activo ─────────────────────────────────────────────────────────

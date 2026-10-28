@@ -22,6 +22,7 @@ from excel_datos import (
     cargar_excel, guardar_excel, descargar_plantilla_excel,
     actualizar_lista, actualizar_lista_debounced,
     seleccionar_alumno, abrir_editor_alumno, abrir_agregar_alumno,
+    eliminar_alumno_seleccionado,
     actualizar_etiqueta_excel, actualizar_etiqueta_alumno,
 )
 from camara import (
@@ -66,6 +67,8 @@ def limpiar_datos_actuales():
         estado.boton_cargar_foto.configure(state="disabled")
     if estado.boton_historial:
         estado.boton_historial.configure(state="disabled")
+    if estado.boton_eliminar_alumno:
+        estado.boton_eliminar_alumno.configure(state="disabled")
     for item in estado.tree.get_children() if estado.tree else []:
         estado.tree.delete(item)
     if estado.combo_grupo:
@@ -73,6 +76,10 @@ def limpiar_datos_actuales():
         estado.combo_grupo.set("Todos")
     if estado.combo_estado_foto:
         estado.combo_estado_foto.set("Todos")
+    for combo in (estado.combo_especialidad, estado.combo_turno):
+        if combo:
+            combo["values"] = ["Todos"]
+            combo.set("Todos")
     if estado.entry_buscar:
         estado.entry_buscar.delete(0, tk.END)
     actualizar_indicadores()
@@ -195,127 +202,198 @@ actualizar_indicadores()
 # Contenedor principal (paneles lado a lado)
 frame_contenido = tb.Frame(estado.root, padding=(15, 5))
 frame_contenido.pack(side="top", fill="both", expand=True)
+frame_contenido.grid_columnconfigure(0, weight=1, uniform="paneles")
+frame_contenido.grid_columnconfigure(1, weight=3, uniform="paneles")
+frame_contenido.grid_rowconfigure(0, weight=1)
 
 # Panel izquierdo: alumnos
 frame_izquierdo = tb.Labelframe(frame_contenido, text="Alumnos", bootstyle="primary", padding=12)
-frame_izquierdo.pack(side="left", fill="y", padx=(0, 12))
+frame_izquierdo.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
 
 frame_filtros = tb.Frame(frame_izquierdo)
 frame_filtros.pack(fill="x", pady=5)
+for columna in range(3):
+    frame_filtros.grid_columnconfigure(columna, weight=1)
 
-tb.Label(frame_filtros, text="Grupo:").grid(row=0, column=0, sticky="w")
-estado.combo_grupo = tb.Combobox(frame_filtros, state="readonly", width=12, values=["Todos"])
+def crear_filtro_superior(texto, fila, columna, crear_control):
+    bloque = tb.Frame(frame_filtros)
+    bloque.grid(row=fila, column=columna, sticky="ew", padx=4, pady=2)
+    tb.Label(bloque, text=texto).pack(anchor="w")
+    control = crear_control(bloque)
+    control.pack(fill="x")
+    return control
+
+estado.combo_grupo = crear_filtro_superior(
+    "Grupo", 0, 0,
+    lambda parent: tb.Combobox(parent, state="readonly", width=12, values=["Todos"]))
 estado.combo_grupo.set("Todos")
-estado.combo_grupo.grid(row=0, column=1, padx=5, pady=3)
 estado.combo_grupo.bind("<<ComboboxSelected>>", actualizar_lista)
 
-tb.Label(frame_filtros, text="Foto:").grid(row=1, column=0, sticky="w")
-estado.combo_estado_foto = tb.Combobox(
-    frame_filtros, state="readonly", width=12,
-    values=["Todos", "Con foto", "Sin foto"])
+estado.combo_estado_foto = crear_filtro_superior(
+    "Foto", 0, 1,
+    lambda parent: tb.Combobox(
+        parent, state="readonly", width=12,
+        values=["Todos", "Con foto", "Sin foto"]))
 estado.combo_estado_foto.set("Todos")
-estado.combo_estado_foto.grid(row=1, column=1, padx=5, pady=3)
 estado.combo_estado_foto.bind("<<ComboboxSelected>>", actualizar_lista)
 
-tb.Label(frame_filtros, text="Buscar:").grid(row=2, column=0, sticky="w")
-estado.entry_buscar = tb.Entry(frame_filtros, width=16)
-estado.entry_buscar.grid(row=2, column=1, padx=5, pady=3)
+estado.combo_turno = crear_filtro_superior(
+    "Turno", 0, 2,
+    lambda parent: tb.Combobox(parent, state="readonly", width=12, values=["Todos"]))
+estado.combo_turno.set("Todos")
+estado.combo_turno.bind("<<ComboboxSelected>>", actualizar_lista)
+
+estado.combo_especialidad = crear_filtro_superior(
+    "Especialidad", 1, 0,
+    lambda parent: tb.Combobox(parent, state="readonly", width=20, values=["Todos"]))
+estado.combo_especialidad.set("Todos")
+estado.combo_especialidad.bind("<<ComboboxSelected>>", actualizar_lista)
+
+estado.entry_buscar = crear_filtro_superior(
+    "Buscar", 1, 1,
+    lambda parent: tb.Entry(parent, width=16))
 estado.entry_buscar.bind("<KeyRelease>", actualizar_lista_debounced)
 
 frame_tree = tb.Frame(frame_izquierdo)
-frame_tree.pack(fill="y", pady=5)
+frame_tree.pack(fill="both", expand=True, pady=5)
 
-columnas = ("matricula", "nombre", "grupo", "turno", "foto")
-estado.tree = tb.Treeview(frame_tree, columns=columnas, show="headings", height=26, bootstyle="primary")
-estado.tree.heading("matricula", text="Matrícula")
-estado.tree.heading("nombre", text="Nombre completo")
-estado.tree.heading("grupo", text="Grupo")
-estado.tree.heading("turno", text="Turno")
-estado.tree.heading("foto", text="Foto")
-estado.tree.column("matricula", width=85)
-estado.tree.column("nombre", width=220)
-estado.tree.column("grupo", width=60)
-estado.tree.column("turno", width=70)
-estado.tree.column("foto", width=55)
+columnas = (
+    "nombre", "apellido_paterno", "apellido_materno", "matricula",
+    "especialidad", "grupo", "turno", "generacion", "semestre", "foto",
+)
+estado.tree = tb.Treeview(
+    frame_tree, columns=columnas, show="headings", height=26,
+    bootstyle="primary")
+encabezados = {
+    "nombre": "Nombre", "apellido_paterno": "A. Paterno",
+    "apellido_materno": "A. Materno", "matricula": "Matrícula",
+    "especialidad": "Especialidad", "grupo": "Grupo", "turno": "Turno",
+    "generacion": "Generación", "semestre": "Semestre", "foto": "Foto",
+}
+anchos = {
+    "nombre": 150, "apellido_paterno": 130,
+    "apellido_materno": 130, "matricula": 125, "especialidad": 150,
+    "grupo": 70, "turno": 95, "generacion": 100, "semestre": 75,
+    "foto": 90,
+}
+for columna in columnas:
+    estado.tree.heading(columna, text=encabezados[columna])
+    estado.tree.column(columna, width=anchos[columna], minwidth=anchos[columna],
+                      stretch=False, anchor="center")
 estado.tree.tag_configure("con_foto", foreground="#2e8b57")
 estado.tree.tag_configure("sin_foto", foreground="#c0392b")
-estado.tree.pack(side="left")
+estado.tree.pack(side="top", fill="both", expand=True)
 estado.tree.bind("<<TreeviewSelect>>", seleccionar_alumno)
+
+def desplazar_horizontal(event):
+    """Desplaza la tabla horizontalmente con pasos pequeños y fluidos."""
+    pasos = -1 if event.delta > 0 else 1
+    estado.tree.xview_scroll(pasos, "units")
+    return "break"
+
+estado.tree.bind("<Shift-MouseWheel>", desplazar_horizontal)
 
 scrollbar_tree = tb.Scrollbar(frame_tree, orient="vertical", command=estado.tree.yview,
                                bootstyle="round-primary")
 estado.tree.configure(yscrollcommand=scrollbar_tree.set)
-scrollbar_tree.pack(side="left", fill="y")
+scrollbar_tree.pack(side="right", fill="y")
+scrollbar_horizontal = tb.Scrollbar(
+    frame_tree, orient="horizontal", command=estado.tree.xview,
+    bootstyle="round-primary")
+estado.tree.configure(xscrollcommand=scrollbar_horizontal.set)
+scrollbar_horizontal.pack(side="bottom", fill="x")
 
 # Panel derecho: cámara
 frame_derecho = tb.Labelframe(frame_contenido, text="Cámara", bootstyle="primary", padding=12)
-frame_derecho.pack(side="left", fill="both", expand=True)
+frame_derecho.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
 
 frame_info_alumno = tb.Frame(frame_derecho)
-frame_info_alumno.pack(fill="x", pady=(5, 2))
+estado.frame_info_alumno = frame_info_alumno
 
 estado.etiqueta_alumno = tb.Label(
     frame_info_alumno, text="Sin alumno seleccionado",
     font=("Segoe UI", 12, "bold"), anchor="center", justify="center")
-estado.etiqueta_alumno.pack(fill="x", padx=8)
+# Se conserva la referencia para la lógica interna, pero ya no se muestra el
+# texto redundante sobre el alumno seleccionado.
+
+frame_previsualizacion = tb.Frame(frame_info_alumno)
+frame_previsualizacion.pack(fill="both", expand=True, pady=(5, 8))
+estado.etiqueta_foto = tk.Label(
+    frame_previsualizacion, text="Sin fotografía", bg="#f8f9fa",
+    fg="#6c757d", anchor="center", justify="center")
+estado.etiqueta_foto.pack(fill="both", expand=True)
 
 frame_acciones_alumno = tb.Frame(frame_derecho)
-frame_acciones_alumno.pack(pady=(2, 8))
+frame_acciones_alumno.pack(fill="x", pady=(2, 8), padx=5)
+for columna in range(5):
+    frame_acciones_alumno.grid_columnconfigure(columna, weight=1)
 
-tb.Button(frame_acciones_alumno, text="✏️ Editar Datos", bootstyle="secondary-outline",
-          cursor="hand2", command=abrir_editor_alumno, width=18
-          ).pack(side="left", padx=5, ipady=4)
+tb.Button(frame_acciones_alumno, text="✏ Editar", bootstyle="secondary-outline",
+          cursor="hand2", command=abrir_editor_alumno, width=12
+          ).grid(row=0, column=0, sticky="ew", padx=4, ipady=2)
 
 estado.boton_imprimir_credencial = tb.Button(
-    frame_acciones_alumno, text="🖨️ Imprimir credencial",
+    frame_acciones_alumno, text="🖨 Imprimir",
     bootstyle="success-outline", cursor="hand2",
     command=imprimir_alumno_seleccionado, state="disabled", width=22)
-estado.boton_imprimir_credencial.pack(side="left", padx=5, ipady=4)
+estado.boton_imprimir_credencial.grid(row=0, column=1, sticky="ew", padx=4, ipady=2)
 
 estado.boton_cargar_foto = tb.Button(
-    frame_acciones_alumno, text="📂 Cargar fotografía",
+    frame_acciones_alumno, text="📂 Cargar foto",
     bootstyle="info-outline", cursor="hand2",
     command=cargar_foto_archivo, state="disabled", width=20)
-estado.boton_cargar_foto.pack(side="left", padx=5, ipady=4)
+estado.boton_cargar_foto.grid(row=0, column=2, sticky="ew", padx=4, ipady=2)
 
 estado.boton_historial = tb.Button(
     frame_acciones_alumno, text="🧾 Historial",
     bootstyle="warning-outline", cursor="hand2",
     command=mostrar_historial_alumno, state="disabled", width=14)
-estado.boton_historial.pack(side="left", padx=5, ipady=4)
+estado.boton_historial.grid(row=0, column=3, sticky="ew", padx=4, ipady=2)
+
+estado.boton_eliminar_alumno = tb.Button(
+    frame_acciones_alumno, text="🗑 Eliminar",
+    bootstyle="danger-outline", cursor="hand2",
+    command=eliminar_alumno_seleccionado, state="disabled", width=14)
+estado.boton_eliminar_alumno.grid(row=0, column=4, sticky="ew", padx=4, ipady=2)
+
+# El orden visual queda: acciones, fotografía del alumno y cámara.
+frame_info_alumno.pack(fill="both", expand=True, pady=(4, 2))
 
 # Los controles se empaquetan desde abajo antes que el video para reservar
 # siempre su espacio, incluso en pantallas de menor altura.
-tb.Button(frame_derecho, text="Cerrar Programa", bootstyle="danger",
-          cursor="hand2", command=cerrar_ventana, width=18
-          ).pack(side="bottom", pady=(8, 12), ipady=4)
+tb.Button(frame_derecho, text="✕ Cerrar", bootstyle="danger",
+          cursor="hand2", command=cerrar_ventana, width=12
+          ).pack(side="bottom", pady=(6, 8), ipady=2)
 
 frame_botones_camara = tb.Frame(frame_derecho)
-frame_botones_camara.pack(side="bottom", pady=(8, 10))
+frame_botones_camara.pack(side="bottom", fill="x", padx=20, pady=(8, 10))
+for columna in range(3):
+    frame_botones_camara.grid_columnconfigure(columna, weight=1)
 
 estado.boton_iniciar_camara = tb.Button(
-    frame_botones_camara, text="▶ Iniciar Cámara", bootstyle="success",
-    cursor="hand2", command=video_camara, width=15)
-estado.boton_iniciar_camara.grid(row=0, column=0, padx=8, ipady=8)
+    frame_botones_camara, text="▶ Iniciar", bootstyle="success",
+    cursor="hand2", command=video_camara, width=10)
+estado.boton_iniciar_camara.grid(row=0, column=0, sticky="ew", padx=5, ipady=4)
 
 estado.boton_tomar_foto = tb.Button(
-    frame_botones_camara, text="📷 Tomar Fotografía", bootstyle="primary",
-    cursor="hand2", command=tomar_foto, width=15, state="disabled")
-estado.boton_tomar_foto.grid(row=0, column=1, padx=8, ipady=8)
+    frame_botones_camara, text="📷 Tomar foto", bootstyle="primary",
+    cursor="hand2", command=tomar_foto, width=10, state="disabled")
+estado.boton_tomar_foto.grid(row=0, column=1, sticky="ew", padx=5, ipady=4)
 
 estado.boton_detener_camara = tb.Button(
-    frame_botones_camara, text="■ Detener Cámara", bootstyle="warning",
-    cursor="hand2", command=detener_video, width=15, state="disabled")
-estado.boton_detener_camara.grid(row=0, column=2, padx=8, ipady=8)
+    frame_botones_camara, text="■ Detener", bootstyle="warning",
+    cursor="hand2", command=detener_video, width=10, state="disabled")
+estado.boton_detener_camara.grid(row=0, column=2, sticky="ew", padx=5, ipady=4)
 
 tb.Button(
-    frame_botones_camara, text="⚙ Configurar Cámara",
+    frame_botones_camara, text="⚙ Configurar",
     bootstyle="secondary-outline", cursor="hand2",
     command=abrir_configuracion_camara, width=18
-).grid(row=1, column=0, columnspan=3, pady=(12, 0), ipady=4)
+).grid(row=1, column=0, columnspan=3, pady=(6, 0), ipady=2)
 
 estado.etiqueta_video = tk.Label(frame_derecho, bg="black")
-estado.etiqueta_video.pack(side="top", pady=5)
+# La vista de video se muestra únicamente mientras la cámara está activa;
+# cuando está detenida, el mismo espacio lo ocupa la fotografía del alumno.
 
 
 def manejar_tecla_espacio(event):

@@ -4,11 +4,13 @@ selección en la tabla, y el editor de datos del alumno seleccionado.
 """
 
 import os
+import shutil
 from datetime import datetime
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, simpledialog
 import ttkbootstrap as tb
 import pandas as pd
+from PIL import Image, ImageOps, ImageTk
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
@@ -239,6 +241,14 @@ def cargar_excel(ruta_forzada=None, preguntar_progreso=True):
     grupos = sorted([g for g in estado.df_alumnos["Grupo"].unique().tolist() if g])
     estado.combo_grupo["values"] = ["Todos"] + grupos
     estado.combo_grupo.set("Todos")
+    especialidades = sorted([e for e in estado.df_alumnos["Especialidad"].unique().tolist() if e])
+    turnos = sorted([t for t in estado.df_alumnos["Turno"].unique().tolist() if t])
+    if estado.combo_especialidad:
+        estado.combo_especialidad["values"] = ["Todos"] + especialidades
+        estado.combo_especialidad.set("Todos")
+    if estado.combo_turno:
+        estado.combo_turno["values"] = ["Todos"] + turnos
+        estado.combo_turno.set("Todos")
     if estado.combo_estado_foto:
         estado.combo_estado_foto.set("Todos")
     estado.entry_buscar.delete(0, tk.END)
@@ -269,21 +279,102 @@ def guardar_excel(mostrar_aviso=True):
     if estado.df_alumnos is None or estado.ruta_excel_trabajo is None:
         if mostrar_aviso:
             messagebox.showwarning("Sin datos", "Primero carga un Excel de alumnos.")
-        return
+        return False
     try:
         crear_respaldo(estado.ruta_excel_trabajo, "excel")
         estado.df_alumnos.to_excel(estado.ruta_excel_trabajo, index=False)
         actualizar_etiqueta_excel()
         if mostrar_aviso:
             messagebox.showinfo("Guardado", f"Excel actualizado:\n{estado.ruta_excel_trabajo}")
+        return True
     except PermissionError:
         messagebox.showerror(
             "Error al guardar",
             "No se pudo guardar el Excel. Verifica que no esté abierto en otro "
             "programa (por ejemplo Excel) y vuelve a intentar."
         )
+        return False
     except Exception as e:
         messagebox.showerror("Error al guardar", str(e))
+        return False
+
+
+def eliminar_alumno_seleccionado():
+    """Elimina el alumno seleccionado después de una confirmación doble."""
+    if estado.df_alumnos is None or estado.alumno_actual_idx is None:
+        messagebox.showwarning(
+            "Sin alumno", "Selecciona un alumno de la lista primero.")
+        return
+    if estado.video is not None:
+        messagebox.showwarning(
+            "Cámara activa", "Detén la cámara antes de eliminar un alumno.")
+        return
+
+    indice = estado.alumno_actual_idx
+    fila = estado.df_alumnos.loc[indice]
+    nombre = str(fila.get("NombreCompleto", "")).strip()
+    matricula = str(fila.get("Matricula", "")).strip()
+    confirmar = messagebox.askyesno(
+        "Eliminar alumno",
+        f"¿Deseas eliminar a:\n\n{nombre}\nMatrícula: {matricula}?\n\n"
+        "También se quitará su fotografía de la lista. Se conservará un respaldo.",
+        icon="warning")
+    if not confirmar:
+        return
+
+    entrada = simpledialog.askstring(
+        "Confirmación final",
+        f"Para confirmar, escribe exactamente la matrícula:\n{matricula}",
+        parent=estado.root)
+    if entrada is None or entrada.strip().upper() != matricula.upper():
+        messagebox.showwarning(
+            "Eliminación cancelada",
+            "La matrícula no coincide. No se eliminó ningún dato.")
+        return
+
+    ruta_foto = resolver_ruta_archivo(fila.get("RutaFoto", ""))
+    eliminado_en_memoria = False
+    try:
+        crear_respaldo(estado.ruta_excel_trabajo, "excel")
+        estado.df_alumnos = estado.df_alumnos.drop(index=indice)
+        eliminado_en_memoria = True
+        if not guardar_excel(mostrar_aviso=False):
+            raise OSError("No se pudo guardar el Excel actualizado.")
+    except Exception as error:
+        if eliminado_en_memoria:
+            estado.df_alumnos = pd.concat([
+                estado.df_alumnos, fila.to_frame().T,
+            ]).sort_index()
+        messagebox.showerror(
+            "No se pudo eliminar", f"El alumno no fue eliminado.\n\n{error}")
+        return
+
+    if ruta_foto and os.path.isfile(ruta_foto):
+        try:
+            carpeta_respaldo = os.path.join(
+                estado.ruta_proyecto or os.path.dirname(estado.ruta_excel_trabajo),
+                "respaldos_camapp", "fotos_eliminadas")
+            os.makedirs(carpeta_respaldo, exist_ok=True)
+            nombre_respaldo = (
+                f"{sanitizar_nombre_archivo(nombre)}_{matricula}_"
+                f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+                f"{os.path.splitext(ruta_foto)[1] or '.png'}")
+            shutil.move(ruta_foto, os.path.join(carpeta_respaldo, nombre_respaldo))
+        except OSError:
+            notificar(
+                "Alumno eliminado; la fotografía original quedó en su ubicación.",
+                "warning")
+
+    try:
+        from historial import eliminar_registros_alumno
+        eliminar_registros_alumno(matricula)
+    except Exception:
+        pass
+
+    estado.alumno_actual_idx = None
+    actualizar_lista()
+    actualizar_etiqueta_alumno()
+    notificar(f"{nombre} fue eliminado correctamente", "success")
 
 
 # ─── Lista / selección de alumnos ────────────────────────────────────────────
@@ -311,6 +402,12 @@ def actualizar_lista(*_):
     df_filtrado = estado.df_alumnos
     if grupo_sel and grupo_sel != "Todos":
         df_filtrado = df_filtrado[df_filtrado["Grupo"] == grupo_sel]
+    especialidad_sel = estado.combo_especialidad.get() if estado.combo_especialidad else "Todos"
+    if especialidad_sel and especialidad_sel != "Todos":
+        df_filtrado = df_filtrado[df_filtrado["Especialidad"] == especialidad_sel]
+    turno_sel = estado.combo_turno.get() if estado.combo_turno else "Todos"
+    if turno_sel and turno_sel != "Todos":
+        df_filtrado = df_filtrado[df_filtrado["Turno"] == turno_sel]
     if estado_foto_sel == "Con foto":
         df_filtrado = df_filtrado[df_filtrado["FotoTomada"] == "Sí"]
     elif estado_foto_sel == "Sin foto":
@@ -328,8 +425,10 @@ def actualizar_lista(*_):
         texto_estado = "✔ Sí" if tiene_foto else "— No"
         tag = "con_foto" if tiene_foto else "sin_foto"
         estado.tree.insert("", "end", iid=str(idx), values=(
-            fila["Matricula"], fila["NombreCompleto"], fila["Grupo"],
-            fila["Turno"], texto_estado
+            fila["Nombre"], fila["Apellido Paterno"], fila["Apellido Materno"],
+            fila["Matricula"], fila["Especialidad"],
+            fila["Grupo"], fila["Turno"], fila["Generacion"], fila["Semestre"],
+            texto_estado,
         ), tags=(tag,))
     actualizar_indicadores()
 
@@ -340,7 +439,8 @@ def seleccionar_alumno(event=None):
         estado.alumno_actual_idx = None
         if estado.boton_imprimir_credencial:
             estado.boton_imprimir_credencial.configure(state="disabled")
-        for boton in (estado.boton_cargar_foto, estado.boton_historial):
+        for boton in (estado.boton_cargar_foto, estado.boton_historial,
+                      estado.boton_eliminar_alumno):
             if boton:
                 boton.configure(state="disabled")
         actualizar_etiqueta_alumno()
@@ -348,7 +448,8 @@ def seleccionar_alumno(event=None):
     estado.alumno_actual_idx = int(seleccion[0])
     if estado.boton_imprimir_credencial:
         estado.boton_imprimir_credencial.configure(state="normal")
-    for boton in (estado.boton_cargar_foto, estado.boton_historial):
+    for boton in (estado.boton_cargar_foto, estado.boton_historial,
+                  estado.boton_eliminar_alumno):
         if boton:
             boton.configure(state="normal")
     actualizar_etiqueta_alumno()
@@ -386,9 +487,122 @@ def seleccionar_siguiente_pendiente(idx_recien_guardado):
         seleccionar_alumno()  # fuerza limpiar alumno_actual_idx aunque ya no había selección
 
 
+def crear_editor_alumno_panel(parent):
+    """Construye el editor compacto que acompaña al panel de cámara."""
+    estado.frame_editor_alumno = tb.Labelframe(
+        parent, text="Datos del alumno", bootstyle="secondary", padding=8)
+    campos = (
+        ("Nombre", "entry"), ("Matricula", "entry"),
+        ("Apellido Paterno", "entry"), ("Apellido Materno", "entry"),
+        ("CURP", "entry"), ("Turno", "combo"),
+        ("Grupo", "combo"), ("Especialidad", "combo"),
+    )
+    estado.entradas_editor_alumno = {}
+    for posicion, (campo, tipo) in enumerate(campos):
+        fila, columna = divmod(posicion, 2)
+        bloque = tb.Frame(estado.frame_editor_alumno)
+        bloque.grid(row=fila, column=columna, sticky="ew", padx=4, pady=2)
+        estado.frame_editor_alumno.grid_columnconfigure(columna, weight=1)
+        tb.Label(bloque, text=campo).pack(anchor="w")
+        if tipo == "combo":
+            entrada = tb.Combobox(bloque, state="readonly", values=[""])
+        else:
+            entrada = tb.Entry(bloque)
+        entrada.pack(fill="x")
+        estado.entradas_editor_alumno[campo] = entrada
+    estado.boton_guardar_datos = tb.Button(
+        estado.frame_editor_alumno, text="Guardar cambios",
+        bootstyle="success", cursor="hand2", command=guardar_cambios_panel)
+    estado.boton_guardar_datos.grid(row=4, column=0, columnspan=2, pady=(7, 2), ipady=3)
+    actualizar_editor_alumno_panel()
+    return estado.frame_editor_alumno
+
+
+def actualizar_editor_alumno_panel():
+    """Refresca los campos del editor cuando cambia la selección."""
+    if not estado.entradas_editor_alumno:
+        return
+    if estado.df_alumnos is None or estado.alumno_actual_idx is None:
+        for entrada in estado.entradas_editor_alumno.values():
+            entrada.configure(state="disabled")
+            if isinstance(entrada, tb.Combobox):
+                entrada.set("")
+            else:
+                entrada.delete(0, tk.END)
+        if estado.boton_guardar_datos:
+            estado.boton_guardar_datos.configure(state="disabled")
+        return
+    fila = estado.df_alumnos.loc[estado.alumno_actual_idx]
+    opciones = {
+        "Turno": sorted(str(x) for x in estado.df_alumnos["Turno"].unique() if str(x).strip()),
+        "Grupo": sorted(str(x) for x in estado.df_alumnos["Grupo"].unique() if str(x).strip()),
+        "Especialidad": sorted(str(x) for x in estado.df_alumnos["Especialidad"].unique() if str(x).strip()),
+    }
+    for campo, entrada in estado.entradas_editor_alumno.items():
+        valor = str(fila.get(campo, "") or "")
+        entrada.configure(state="normal")
+        if isinstance(entrada, tb.Combobox):
+            valores = opciones[campo]
+            if valor and valor not in valores:
+                valores.append(valor)
+            entrada.configure(values=valores)
+            entrada.set(valor)
+        else:
+            entrada.delete(0, tk.END)
+            entrada.insert(0, valor)
+    if estado.boton_guardar_datos:
+        estado.boton_guardar_datos.configure(state="normal")
+
+
+def guardar_cambios_panel():
+    """Guarda los datos editados desde el panel de cámara."""
+    if estado.df_alumnos is None or estado.alumno_actual_idx is None:
+        return
+    entradas = estado.entradas_editor_alumno
+    campos = tuple(entradas)
+    nuevos = {campo: normalizar_texto_alumno(entradas[campo].get()) for campo in campos}
+    requeridos = ("Nombre", "Apellido Paterno", "CURP", "Matricula")
+    if any(not nuevos[campo] for campo in requeridos):
+        messagebox.showwarning(
+            "Datos incompletos", "Nombre, apellido paterno, CURP y matrícula son obligatorios.")
+        return
+    otros = estado.df_alumnos.drop(index=estado.alumno_actual_idx)
+    if (otros["Matricula"].astype(str) == nuevos["Matricula"]).any():
+        messagebox.showwarning("Matrícula duplicada", "Esa matrícula ya pertenece a otro alumno.")
+        return
+    if (otros["CURP"].astype(str) == nuevos["CURP"]).any():
+        messagebox.showwarning("CURP duplicado", "Ese CURP ya pertenece a otro alumno.")
+        return
+    fila_anterior = estado.df_alumnos.loc[estado.alumno_actual_idx]
+    nombre_anterior = fila_anterior["NombreCompleto"]
+    ruta_foto = resolver_ruta_archivo(fila_anterior.get("RutaFoto", ""))
+    for campo, valor in nuevos.items():
+        estado.df_alumnos.at[estado.alumno_actual_idx, campo] = valor
+    apellidos = " ".join((nuevos["Apellido Paterno"] + " " + nuevos["Apellido Materno"]).split())
+    nombre_completo = " ".join((nuevos["Nombre"] + " " + apellidos).split())
+    estado.df_alumnos.at[estado.alumno_actual_idx, "Apellidos"] = apellidos
+    estado.df_alumnos.at[estado.alumno_actual_idx, "NombreCompleto"] = nombre_completo
+    if ruta_foto and os.path.isfile(ruta_foto) and (
+            nombre_completo != nombre_anterior or nuevos["Matricula"] != fila_anterior["Matricula"]):
+        nueva_ruta = os.path.join(
+            os.path.dirname(ruta_foto),
+            sanitizar_nombre_archivo(f"{nombre_completo}_{nuevos['Matricula']}") + ".png")
+        try:
+            os.rename(ruta_foto, nueva_ruta)
+            estado.df_alumnos.at[estado.alumno_actual_idx, "RutaFoto"] = hacer_ruta_portable(nueva_ruta)
+        except OSError:
+            pass
+    guardar_excel(mostrar_aviso=False)
+    actualizar_lista()
+    actualizar_etiqueta_alumno()
+    notificar("Datos del alumno actualizados", "success")
+
+
 def actualizar_etiqueta_alumno():
     if estado.alumno_actual_idx is None or estado.df_alumnos is None:
         estado.etiqueta_alumno.configure(text="Sin alumno seleccionado")
+        actualizar_editor_alumno_panel()
+        actualizar_previsualizacion_foto()
         return
     fila = estado.df_alumnos.loc[estado.alumno_actual_idx]
     estado.etiqueta_alumno.configure(
@@ -397,6 +611,37 @@ def actualizar_etiqueta_alumno():
              f"Impresiones: {int(fila.get('Impresiones', 0) or 0)}  |  "
              f"Reposiciones: {int(fila.get('Reposiciones', 0) or 0)}"
     )
+    actualizar_editor_alumno_panel()
+    actualizar_previsualizacion_foto()
+
+
+def actualizar_previsualizacion_foto():
+    """Muestra la fotografía del alumno seleccionado, si existe."""
+    etiqueta = estado.etiqueta_foto
+    if etiqueta is None:
+        return
+    etiqueta.configure(image="", text="Sin fotografía")
+    etiqueta.image = None
+    if estado.alumno_actual_idx is None or estado.df_alumnos is None:
+        return
+    fila = estado.df_alumnos.loc[estado.alumno_actual_idx]
+    ruta = resolver_ruta_archivo(fila.get("RutaFoto", ""))
+    if not ruta or not os.path.isfile(ruta):
+        return
+    try:
+        with Image.open(ruta) as imagen:
+            imagen = ImageOps.contain(imagen.convert("RGB"), (650, 450))
+            lienzo = Image.new("RGB", (670, 470), "white")
+            posicion = (
+                (lienzo.width - imagen.width) // 2,
+                (lienzo.height - imagen.height) // 2,
+            )
+            lienzo.paste(imagen, posicion)
+        imagen_tk = ImageTk.PhotoImage(lienzo)
+        etiqueta.configure(image=imagen_tk, text="")
+        etiqueta.image = imagen_tk
+    except (OSError, ValueError):
+        etiqueta.configure(text="No se pudo cargar la fotografía")
 
 
 # ─── Alta manual de alumnos ──────────────────────────────────────────────────
@@ -432,14 +677,40 @@ def abrir_agregar_alumno():
     valores_iniciales = {
         "Turno": "MATUTINO",
         "Especialidad": "N/A",
+        "Grupo": "1A",
     }
+    campos_desplegables = ("Grupo", "Turno", "Especialidad")
+    opciones_desplegables = {}
+    for campo in campos_desplegables:
+        if estado.df_alumnos is not None and campo in estado.df_alumnos:
+            valores = sorted(
+                str(valor).strip() for valor in estado.df_alumnos[campo].unique()
+                if str(valor).strip()
+            )
+        else:
+            valores = []
+        # Cuando todavía no hay Excel cargado se conserva un valor inicial
+        # válido para poder crear la primera base manualmente.
+        if not valores:
+            valores = [valores_iniciales[campo]]
+        opciones_desplegables[campo] = valores
     entradas = {}
 
     for numero_fila, campo in enumerate(campos, start=2):
         tb.Label(ventana, text=f"{campo}:").grid(
             row=numero_fila, column=0, sticky="e", padx=(20, 6), pady=4)
-        entrada = tb.Entry(ventana, width=34)
-        entrada.insert(0, valores_iniciales.get(campo, ""))
+        if campo in campos_desplegables:
+            entrada = tb.Combobox(
+                ventana, width=32, state="readonly",
+                values=opciones_desplegables[campo])
+            valor_inicial = valores_iniciales[campo]
+            entrada.set(
+                valor_inicial if valor_inicial in opciones_desplegables[campo]
+                else opciones_desplegables[campo][0]
+            )
+        else:
+            entrada = tb.Entry(ventana, width=34)
+            entrada.insert(0, valores_iniciales.get(campo, ""))
         entrada.grid(row=numero_fila, column=1, padx=(0, 20), pady=4)
         entradas[campo] = entrada
 
@@ -511,6 +782,14 @@ def abrir_agregar_alumno():
             g for g in estado.df_alumnos["Grupo"].unique().tolist() if g)
         estado.combo_grupo["values"] = ["Todos"] + grupos
         estado.combo_grupo.set("Todos")
+        especialidades = sorted(
+            e for e in estado.df_alumnos["Especialidad"].unique().tolist() if e)
+        turnos = sorted(
+            t for t in estado.df_alumnos["Turno"].unique().tolist() if t)
+        if estado.combo_especialidad:
+            estado.combo_especialidad["values"] = ["Todos"] + especialidades
+        if estado.combo_turno:
+            estado.combo_turno["values"] = ["Todos"] + turnos
         estado.entry_buscar.delete(0, tk.END)
 
         carpeta_grupo = os.path.join(
@@ -546,29 +825,37 @@ def abrir_agregar_alumno():
 
 # ─── Editor de datos del alumno ──────────────────────────────────────────────
 def abrir_editor_alumno():
-    """Abre un formulario para corregir Nombre, Apellidos y CURP del alumno
-    seleccionado (la Matrícula no es editable: es la clave que usa todo el
-    programa para identificar al alumno y sus archivos)."""
+    """Abre un formulario independiente para editar todos los datos básicos."""
     if estado.alumno_actual_idx is None or estado.df_alumnos is None:
         messagebox.showwarning("Sin alumno", "Selecciona un alumno de la lista primero.")
         return
 
     fila = estado.df_alumnos.loc[estado.alumno_actual_idx]
-    campos = ["Nombre", "Apellido Paterno", "Apellido Materno", "CURP"]
+    campos = [
+        "Nombre", "Apellido Paterno", "Apellido Materno", "CURP", "Matricula",
+        "Turno", "Grupo", "Especialidad",
+    ]
 
     ventana_editar = tk.Toplevel(estado.root)
     ventana_editar.title("Editar Datos del Alumno")
     ventana_editar.resizable(False, False)
 
-    tb.Label(ventana_editar, text=f"Matrícula: {fila['Matricula']}  (no editable)",
+    tb.Label(ventana_editar, text="Modifica los datos del alumno y guarda los cambios.",
              font=("Segoe UI", 9, "italic"), bootstyle="secondary"
              ).grid(row=0, column=0, columnspan=2, padx=15, pady=(15, 10), sticky="w")
 
     entradas = {}
     for i, campo in enumerate(campos, start=1):
         tb.Label(ventana_editar, text=f"{campo}:").grid(row=i, column=0, sticky="e", padx=(15, 5), pady=6)
-        entrada = tb.Entry(ventana_editar, width=30)
-        entrada.insert(0, fila[campo])
+        if campo in ("Turno", "Grupo", "Especialidad"):
+            valores = sorted(str(valor) for valor in estado.df_alumnos[campo].unique() if str(valor).strip())
+            entrada = tb.Combobox(ventana_editar, width=28, state="readonly", values=valores)
+        else:
+            entrada = tb.Entry(ventana_editar, width=30)
+        if isinstance(entrada, tb.Combobox):
+            entrada.set(str(fila[campo]))
+        else:
+            entrada.insert(0, fila[campo])
         entrada.grid(row=i, column=1, padx=(0, 15), pady=6)
         entradas[campo] = entrada
     entradas["Nombre"].focus_set()
@@ -579,9 +866,10 @@ def abrir_editor_alumno():
             for campo in campos
         }
 
-        if not nuevos_valores["Nombre"] or not nuevos_valores["Apellido Paterno"]:
+        if (not nuevos_valores["Nombre"] or not nuevos_valores["Apellido Paterno"]
+                or not nuevos_valores["Matricula"]):
             messagebox.showwarning("Datos incompletos",
-                "Nombre y Apellido Paterno no pueden quedar vacíos.",
+                "Nombre, apellido paterno y matrícula no pueden quedar vacíos.",
                 parent=ventana_editar)
             return
 
@@ -594,6 +882,11 @@ def abrir_editor_alumno():
         if (otros["CURP"] == nuevos_valores["CURP"]).any():
             messagebox.showwarning("CURP duplicado",
                 "Ese CURP ya pertenece a otro alumno en la lista.", parent=ventana_editar)
+            return
+        if (otros["Matricula"] == nuevos_valores["Matricula"]).any():
+            messagebox.showwarning("Matrícula duplicada",
+                "Esa matrícula ya pertenece a otro alumno en la lista.",
+                parent=ventana_editar)
             return
 
         nombre_completo_anterior = fila["NombreCompleto"]
@@ -618,10 +911,11 @@ def abrir_editor_alumno():
         # Si ya tenía foto y el nombre cambió, renombrar el archivo físico
         # para que siga coincidiendo con el nombre corregido.
         if (ruta_foto_anterior and os.path.exists(ruta_foto_anterior)
-                and nuevo_nombre_completo != nombre_completo_anterior):
+                and (nuevo_nombre_completo != nombre_completo_anterior
+                     or nuevos_valores["Matricula"] != fila["Matricula"])):
             carpeta = os.path.dirname(ruta_foto_anterior)
             nuevo_nombre_archivo = sanitizar_nombre_archivo(
-                f"{nuevo_nombre_completo}_{fila['Matricula']}") + ".png"
+                f"{nuevo_nombre_completo}_{nuevos_valores['Matricula']}") + ".png"
             nueva_ruta = os.path.join(carpeta, nuevo_nombre_archivo)
             try:
                 os.rename(ruta_foto_anterior, nueva_ruta)

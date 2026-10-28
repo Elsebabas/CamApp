@@ -41,6 +41,13 @@ def video_camara():
         estado.boton_tomar_foto.configure(state="normal")
     if estado.boton_detener_camara is not None:
         estado.boton_detener_camara.configure(state="normal")
+    # La fotografía y la cámara comparten el mismo espacio. Al iniciar la
+    # cámara se oculta toda la vista previa para que el video pueda crecer.
+    if estado.frame_info_alumno is not None:
+        estado.frame_info_alumno.pack_forget()
+    if estado.etiqueta_video is not None:
+        estado.etiqueta_video.pack(
+            side="top", fill="both", expand=True, padx=5, pady=5)
     notificar(f"Cámara {estado.camera_index} iniciada", "success")
     iniciar()
 
@@ -106,8 +113,13 @@ def iniciar():
             frame = cv2.flip(frame, 1)
         frame = imutils.resize(frame, width=950)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        alto_maximo = max(260, min(560, estado.root.winfo_height() - 390))
-        ancho_maximo = max(560, min(950, estado.root.winfo_width() - 650))
+        # Se mide el widget real donde se dibuja el video. Medir el panel
+        # completo hacía que el frame resultara más grande que su etiqueta y
+        # se recortara al mostrarlo.
+        ancho_panel = estado.etiqueta_video.winfo_width() or estado.root.winfo_width()
+        alto_panel = estado.etiqueta_video.winfo_height() or estado.root.winfo_height()
+        alto_maximo = max(180, min(560, alto_panel - 12))
+        ancho_maximo = max(320, min(950, ancho_panel - 12))
         alto_frame, ancho_frame = frame.shape[:2]
         escala_preview = min(
             1.0, ancho_maximo / ancho_frame, alto_maximo / alto_frame)
@@ -148,6 +160,10 @@ def detener_video():
         estado.boton_tomar_foto.configure(state="disabled")
     if estado.boton_detener_camara is not None:
         estado.boton_detener_camara.configure(state="disabled")
+    if estado.frame_info_alumno is not None and estado.etiqueta_video is not None:
+        estado.etiqueta_video.pack_forget()
+        estado.frame_info_alumno.pack(
+            fill="both", expand=True, pady=(4, 2))
     notificar("Cámara detenida", "info")
 
 
