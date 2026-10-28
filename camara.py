@@ -110,13 +110,13 @@ def iniciar():
             frame = cv2.flip(frame, 1)
         frame = imutils.resize(frame, width=950)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        panel = estado.etiqueta_video.master
-        ancho_panel = panel.winfo_width() or estado.root.winfo_width()
-        alto_panel = panel.winfo_height() or estado.root.winfo_height()
-        # El panel incluye la información del alumno y los controles inferiores;
-        # usamos el espacio restante para que el frame nunca quede cortado.
-        alto_maximo = max(220, min(560, alto_panel - 400))
-        ancho_maximo = max(420, min(950, ancho_panel - 40))
+        # Se mide el widget real donde se dibuja el video. Medir el panel
+        # completo hacía que el frame resultara más grande que su etiqueta y
+        # se recortara al mostrarlo.
+        ancho_panel = estado.etiqueta_video.winfo_width() or estado.root.winfo_width()
+        alto_panel = estado.etiqueta_video.winfo_height() or estado.root.winfo_height()
+        alto_maximo = max(180, min(560, alto_panel - 12))
+        ancho_maximo = max(320, min(950, ancho_panel - 12))
         alto_frame, ancho_frame = frame.shape[:2]
         escala_preview = min(
             1.0, ancho_maximo / ancho_frame, alto_maximo / alto_frame)

@@ -325,36 +325,36 @@ frame_acciones_alumno.pack(fill="x", pady=(2, 8), padx=5)
 for columna in range(4):
     frame_acciones_alumno.grid_columnconfigure(columna, weight=1)
 
-tb.Button(frame_acciones_alumno, text="✏️ Editar Datos", bootstyle="secondary-outline",
-          cursor="hand2", command=abrir_editor_alumno, width=18
-          ).grid(row=0, column=0, sticky="ew", padx=4, ipady=4)
+tb.Button(frame_acciones_alumno, text="✏ Editar", bootstyle="secondary-outline",
+          cursor="hand2", command=abrir_editor_alumno, width=12
+          ).grid(row=0, column=0, sticky="ew", padx=4, ipady=2)
 
 estado.boton_imprimir_credencial = tb.Button(
-    frame_acciones_alumno, text="🖨️ Imprimir credencial",
+    frame_acciones_alumno, text="🖨 Imprimir",
     bootstyle="success-outline", cursor="hand2",
     command=imprimir_alumno_seleccionado, state="disabled", width=22)
-estado.boton_imprimir_credencial.grid(row=0, column=1, sticky="ew", padx=4, ipady=4)
+estado.boton_imprimir_credencial.grid(row=0, column=1, sticky="ew", padx=4, ipady=2)
 
 estado.boton_cargar_foto = tb.Button(
-    frame_acciones_alumno, text="📂 Cargar fotografía",
+    frame_acciones_alumno, text="📂 Cargar foto",
     bootstyle="info-outline", cursor="hand2",
     command=cargar_foto_archivo, state="disabled", width=20)
-estado.boton_cargar_foto.grid(row=0, column=2, sticky="ew", padx=4, ipady=4)
+estado.boton_cargar_foto.grid(row=0, column=2, sticky="ew", padx=4, ipady=2)
 
 estado.boton_historial = tb.Button(
     frame_acciones_alumno, text="🧾 Historial",
     bootstyle="warning-outline", cursor="hand2",
     command=mostrar_historial_alumno, state="disabled", width=14)
-estado.boton_historial.grid(row=0, column=3, sticky="ew", padx=4, ipady=4)
+estado.boton_historial.grid(row=0, column=3, sticky="ew", padx=4, ipady=2)
 
 # El orden visual queda: acciones, fotografía del alumno y cámara.
 frame_info_alumno.pack(fill="x", pady=(4, 2))
 
 # Los controles se empaquetan desde abajo antes que el video para reservar
 # siempre su espacio, incluso en pantallas de menor altura.
-tb.Button(frame_derecho, text="Cerrar Programa", bootstyle="danger",
-          cursor="hand2", command=cerrar_ventana, width=18
-          ).pack(side="bottom", pady=(8, 12), ipady=4)
+tb.Button(frame_derecho, text="✕ Cerrar", bootstyle="danger",
+          cursor="hand2", command=cerrar_ventana, width=12
+          ).pack(side="bottom", pady=(6, 8), ipady=2)
 
 frame_botones_camara = tb.Frame(frame_derecho)
 frame_botones_camara.pack(side="bottom", fill="x", padx=20, pady=(8, 10))
@@ -362,25 +362,25 @@ for columna in range(3):
     frame_botones_camara.grid_columnconfigure(columna, weight=1)
 
 estado.boton_iniciar_camara = tb.Button(
-    frame_botones_camara, text="▶ Iniciar Cámara", bootstyle="success",
-    cursor="hand2", command=video_camara, width=15)
-estado.boton_iniciar_camara.grid(row=0, column=0, sticky="ew", padx=5, ipady=8)
+    frame_botones_camara, text="▶ Iniciar", bootstyle="success",
+    cursor="hand2", command=video_camara, width=10)
+estado.boton_iniciar_camara.grid(row=0, column=0, sticky="ew", padx=5, ipady=4)
 
 estado.boton_tomar_foto = tb.Button(
-    frame_botones_camara, text="📷 Tomar Fotografía", bootstyle="primary",
-    cursor="hand2", command=tomar_foto, width=15, state="disabled")
-estado.boton_tomar_foto.grid(row=0, column=1, sticky="ew", padx=5, ipady=8)
+    frame_botones_camara, text="📷 Tomar foto", bootstyle="primary",
+    cursor="hand2", command=tomar_foto, width=10, state="disabled")
+estado.boton_tomar_foto.grid(row=0, column=1, sticky="ew", padx=5, ipady=4)
 
 estado.boton_detener_camara = tb.Button(
-    frame_botones_camara, text="■ Detener Cámara", bootstyle="warning",
-    cursor="hand2", command=detener_video, width=15, state="disabled")
-estado.boton_detener_camara.grid(row=0, column=2, sticky="ew", padx=5, ipady=8)
+    frame_botones_camara, text="■ Detener", bootstyle="warning",
+    cursor="hand2", command=detener_video, width=10, state="disabled")
+estado.boton_detener_camara.grid(row=0, column=2, sticky="ew", padx=5, ipady=4)
 
 tb.Button(
-    frame_botones_camara, text="⚙ Configurar Cámara",
+    frame_botones_camara, text="⚙ Configurar",
     bootstyle="secondary-outline", cursor="hand2",
     command=abrir_configuracion_camara, width=18
-).grid(row=1, column=0, columnspan=3, pady=(12, 0), ipady=4)
+).grid(row=1, column=0, columnspan=3, pady=(6, 0), ipady=2)
 
 estado.etiqueta_video = tk.Label(frame_derecho, bg="black")
 estado.etiqueta_video.pack(side="top", fill="both", expand=True, padx=5, pady=5)
