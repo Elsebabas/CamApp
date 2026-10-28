@@ -546,8 +546,8 @@ def actualizar_previsualizacion_foto():
         return
     try:
         with Image.open(ruta) as imagen:
-            imagen = ImageOps.contain(imagen.convert("RGB"), (220, 160))
-            lienzo = Image.new("RGB", (240, 180), "white")
+            imagen = ImageOps.contain(imagen.convert("RGB"), (290, 205))
+            lienzo = Image.new("RGB", (310, 225), "white")
             posicion = (
                 (lienzo.width - imagen.width) // 2,
                 (lienzo.height - imagen.height) // 2,

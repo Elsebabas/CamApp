@@ -305,7 +305,6 @@ frame_derecho = tb.Labelframe(frame_contenido, text="Cámara", bootstyle="primar
 frame_derecho.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
 
 frame_info_alumno = tb.Frame(frame_derecho)
-frame_info_alumno.pack(fill="x", pady=(5, 2))
 
 estado.etiqueta_alumno = tb.Label(
     frame_info_alumno, text="Sin alumno seleccionado",
@@ -313,7 +312,7 @@ estado.etiqueta_alumno = tb.Label(
 # Se conserva la referencia para la lógica interna, pero ya no se muestra el
 # texto redundante sobre el alumno seleccionado.
 
-frame_previsualizacion = tb.Frame(frame_info_alumno, width=260, height=190)
+frame_previsualizacion = tb.Frame(frame_info_alumno, width=330, height=240)
 frame_previsualizacion.pack(pady=(5, 8))
 frame_previsualizacion.pack_propagate(False)
 estado.etiqueta_foto = tk.Label(
@@ -348,6 +347,9 @@ estado.boton_historial = tb.Button(
     command=mostrar_historial_alumno, state="disabled", width=14)
 estado.boton_historial.grid(row=0, column=3, sticky="ew", padx=4, ipady=4)
 
+# El orden visual queda: acciones, fotografía del alumno y cámara.
+frame_info_alumno.pack(fill="x", pady=(4, 2))
+
 # Los controles se empaquetan desde abajo antes que el video para reservar
 # siempre su espacio, incluso en pantallas de menor altura.
 tb.Button(frame_derecho, text="Cerrar Programa", bootstyle="danger",
@@ -381,7 +383,7 @@ tb.Button(
 ).grid(row=1, column=0, columnspan=3, pady=(12, 0), ipady=4)
 
 estado.etiqueta_video = tk.Label(frame_derecho, bg="black")
-estado.etiqueta_video.pack(side="top", pady=5)
+estado.etiqueta_video.pack(side="top", fill="both", expand=True, padx=5, pady=5)
 
 
 def manejar_tecla_espacio(event):
