@@ -677,14 +677,40 @@ def abrir_agregar_alumno():
     valores_iniciales = {
         "Turno": "MATUTINO",
         "Especialidad": "N/A",
+        "Grupo": "1A",
     }
+    campos_desplegables = ("Grupo", "Turno", "Especialidad")
+    opciones_desplegables = {}
+    for campo in campos_desplegables:
+        if estado.df_alumnos is not None and campo in estado.df_alumnos:
+            valores = sorted(
+                str(valor).strip() for valor in estado.df_alumnos[campo].unique()
+                if str(valor).strip()
+            )
+        else:
+            valores = []
+        # Cuando todavía no hay Excel cargado se conserva un valor inicial
+        # válido para poder crear la primera base manualmente.
+        if not valores:
+            valores = [valores_iniciales[campo]]
+        opciones_desplegables[campo] = valores
     entradas = {}
 
     for numero_fila, campo in enumerate(campos, start=2):
         tb.Label(ventana, text=f"{campo}:").grid(
             row=numero_fila, column=0, sticky="e", padx=(20, 6), pady=4)
-        entrada = tb.Entry(ventana, width=34)
-        entrada.insert(0, valores_iniciales.get(campo, ""))
+        if campo in campos_desplegables:
+            entrada = tb.Combobox(
+                ventana, width=32, state="readonly",
+                values=opciones_desplegables[campo])
+            valor_inicial = valores_iniciales[campo]
+            entrada.set(
+                valor_inicial if valor_inicial in opciones_desplegables[campo]
+                else opciones_desplegables[campo][0]
+            )
+        else:
+            entrada = tb.Entry(ventana, width=34)
+            entrada.insert(0, valores_iniciales.get(campo, ""))
         entrada.grid(row=numero_fila, column=1, padx=(0, 20), pady=4)
         entradas[campo] = entrada
 
