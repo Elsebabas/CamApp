@@ -23,6 +23,7 @@ from excel_datos import (
     actualizar_lista, actualizar_lista_debounced,
     seleccionar_alumno, abrir_editor_alumno, abrir_agregar_alumno,
     actualizar_etiqueta_excel, actualizar_etiqueta_alumno,
+    crear_editor_alumno_panel,
 )
 from camara import (
     video_camara, tomar_foto, cargar_foto_archivo, detener_video, cerrar_ventana,
@@ -282,6 +283,14 @@ estado.tree.tag_configure("sin_foto", foreground="#c0392b")
 estado.tree.pack(side="top", fill="both", expand=True)
 estado.tree.bind("<<TreeviewSelect>>", seleccionar_alumno)
 
+def desplazar_horizontal(event):
+    """Desplaza la tabla horizontalmente con pasos pequeños y fluidos."""
+    pasos = -1 if event.delta > 0 else 1
+    estado.tree.xview_scroll(pasos, "units")
+    return "break"
+
+estado.tree.bind("<Shift-MouseWheel>", desplazar_horizontal)
+
 scrollbar_tree = tb.Scrollbar(frame_tree, orient="vertical", command=estado.tree.yview,
                                bootstyle="round-primary")
 estado.tree.configure(yscrollcommand=scrollbar_tree.set)
@@ -303,6 +312,8 @@ estado.etiqueta_alumno = tb.Label(
     frame_info_alumno, text="Sin alumno seleccionado",
     font=("Segoe UI", 12, "bold"), anchor="center", justify="center")
 estado.etiqueta_alumno.pack(fill="x", padx=8)
+
+crear_editor_alumno_panel(frame_info_alumno).pack(fill="x", padx=5, pady=(4, 6))
 
 estado.etiqueta_foto = tk.Label(
     frame_info_alumno, text="Sin fotografía", bg="#f8f9fa",

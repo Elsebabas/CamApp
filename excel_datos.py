@@ -403,9 +403,121 @@ def seleccionar_siguiente_pendiente(idx_recien_guardado):
         seleccionar_alumno()  # fuerza limpiar alumno_actual_idx aunque ya no había selección
 
 
+def crear_editor_alumno_panel(parent):
+    """Construye el editor compacto que acompaña al panel de cámara."""
+    estado.frame_editor_alumno = tb.Labelframe(
+        parent, text="Datos del alumno", bootstyle="secondary", padding=8)
+    campos = (
+        ("Nombre", "entry"), ("Matricula", "entry"),
+        ("Apellido Paterno", "entry"), ("Apellido Materno", "entry"),
+        ("CURP", "entry"), ("Turno", "combo"),
+        ("Grupo", "combo"), ("Especialidad", "combo"),
+    )
+    estado.entradas_editor_alumno = {}
+    for posicion, (campo, tipo) in enumerate(campos):
+        fila, columna = divmod(posicion, 2)
+        bloque = tb.Frame(estado.frame_editor_alumno)
+        bloque.grid(row=fila, column=columna, sticky="ew", padx=4, pady=2)
+        estado.frame_editor_alumno.grid_columnconfigure(columna, weight=1)
+        tb.Label(bloque, text=campo).pack(anchor="w")
+        if tipo == "combo":
+            entrada = tb.Combobox(bloque, state="readonly", values=[""])
+        else:
+            entrada = tb.Entry(bloque)
+        entrada.pack(fill="x")
+        estado.entradas_editor_alumno[campo] = entrada
+    estado.boton_guardar_datos = tb.Button(
+        estado.frame_editor_alumno, text="Guardar cambios",
+        bootstyle="success", cursor="hand2", command=guardar_cambios_panel)
+    estado.boton_guardar_datos.grid(row=4, column=0, columnspan=2, pady=(7, 2), ipady=3)
+    actualizar_editor_alumno_panel()
+    return estado.frame_editor_alumno
+
+
+def actualizar_editor_alumno_panel():
+    """Refresca los campos del editor cuando cambia la selección."""
+    if not estado.entradas_editor_alumno:
+        return
+    if estado.df_alumnos is None or estado.alumno_actual_idx is None:
+        for entrada in estado.entradas_editor_alumno.values():
+            entrada.configure(state="disabled")
+            if isinstance(entrada, tb.Combobox):
+                entrada.set("")
+            else:
+                entrada.delete(0, tk.END)
+        if estado.boton_guardar_datos:
+            estado.boton_guardar_datos.configure(state="disabled")
+        return
+    fila = estado.df_alumnos.loc[estado.alumno_actual_idx]
+    opciones = {
+        "Turno": sorted(str(x) for x in estado.df_alumnos["Turno"].unique() if str(x).strip()),
+        "Grupo": sorted(str(x) for x in estado.df_alumnos["Grupo"].unique() if str(x).strip()),
+        "Especialidad": sorted(str(x) for x in estado.df_alumnos["Especialidad"].unique() if str(x).strip()),
+    }
+    for campo, entrada in estado.entradas_editor_alumno.items():
+        valor = str(fila.get(campo, "") or "")
+        entrada.configure(state="normal")
+        if isinstance(entrada, tb.Combobox):
+            valores = opciones[campo]
+            if valor and valor not in valores:
+                valores.append(valor)
+            entrada.configure(values=valores)
+            entrada.set(valor)
+        else:
+            entrada.delete(0, tk.END)
+            entrada.insert(0, valor)
+    if estado.boton_guardar_datos:
+        estado.boton_guardar_datos.configure(state="normal")
+
+
+def guardar_cambios_panel():
+    """Guarda los datos editados desde el panel de cámara."""
+    if estado.df_alumnos is None or estado.alumno_actual_idx is None:
+        return
+    entradas = estado.entradas_editor_alumno
+    campos = tuple(entradas)
+    nuevos = {campo: normalizar_texto_alumno(entradas[campo].get()) for campo in campos}
+    requeridos = ("Nombre", "Apellido Paterno", "CURP", "Matricula")
+    if any(not nuevos[campo] for campo in requeridos):
+        messagebox.showwarning(
+            "Datos incompletos", "Nombre, apellido paterno, CURP y matrícula son obligatorios.")
+        return
+    otros = estado.df_alumnos.drop(index=estado.alumno_actual_idx)
+    if (otros["Matricula"].astype(str) == nuevos["Matricula"]).any():
+        messagebox.showwarning("Matrícula duplicada", "Esa matrícula ya pertenece a otro alumno.")
+        return
+    if (otros["CURP"].astype(str) == nuevos["CURP"]).any():
+        messagebox.showwarning("CURP duplicado", "Ese CURP ya pertenece a otro alumno.")
+        return
+    fila_anterior = estado.df_alumnos.loc[estado.alumno_actual_idx]
+    nombre_anterior = fila_anterior["NombreCompleto"]
+    ruta_foto = resolver_ruta_archivo(fila_anterior.get("RutaFoto", ""))
+    for campo, valor in nuevos.items():
+        estado.df_alumnos.at[estado.alumno_actual_idx, campo] = valor
+    apellidos = " ".join((nuevos["Apellido Paterno"] + " " + nuevos["Apellido Materno"]).split())
+    nombre_completo = " ".join((nuevos["Nombre"] + " " + apellidos).split())
+    estado.df_alumnos.at[estado.alumno_actual_idx, "Apellidos"] = apellidos
+    estado.df_alumnos.at[estado.alumno_actual_idx, "NombreCompleto"] = nombre_completo
+    if ruta_foto and os.path.isfile(ruta_foto) and (
+            nombre_completo != nombre_anterior or nuevos["Matricula"] != fila_anterior["Matricula"]):
+        nueva_ruta = os.path.join(
+            os.path.dirname(ruta_foto),
+            sanitizar_nombre_archivo(f"{nombre_completo}_{nuevos['Matricula']}") + ".png")
+        try:
+            os.rename(ruta_foto, nueva_ruta)
+            estado.df_alumnos.at[estado.alumno_actual_idx, "RutaFoto"] = hacer_ruta_portable(nueva_ruta)
+        except OSError:
+            pass
+    guardar_excel(mostrar_aviso=False)
+    actualizar_lista()
+    actualizar_etiqueta_alumno()
+    notificar("Datos del alumno actualizados", "success")
+
+
 def actualizar_etiqueta_alumno():
     if estado.alumno_actual_idx is None or estado.df_alumnos is None:
         estado.etiqueta_alumno.configure(text="Sin alumno seleccionado")
+        actualizar_editor_alumno_panel()
         actualizar_previsualizacion_foto()
         return
     fila = estado.df_alumnos.loc[estado.alumno_actual_idx]
@@ -415,6 +527,7 @@ def actualizar_etiqueta_alumno():
              f"Impresiones: {int(fila.get('Impresiones', 0) or 0)}  |  "
              f"Reposiciones: {int(fila.get('Reposiciones', 0) or 0)}"
     )
+    actualizar_editor_alumno_panel()
     actualizar_previsualizacion_foto()
 
 
