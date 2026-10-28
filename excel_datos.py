@@ -4,9 +4,10 @@ selección en la tabla, y el editor de datos del alumno seleccionado.
 """
 
 import os
+import shutil
 from datetime import datetime
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, simpledialog
 import ttkbootstrap as tb
 import pandas as pd
 from PIL import Image, ImageOps, ImageTk
@@ -278,21 +279,102 @@ def guardar_excel(mostrar_aviso=True):
     if estado.df_alumnos is None or estado.ruta_excel_trabajo is None:
         if mostrar_aviso:
             messagebox.showwarning("Sin datos", "Primero carga un Excel de alumnos.")
-        return
+        return False
     try:
         crear_respaldo(estado.ruta_excel_trabajo, "excel")
         estado.df_alumnos.to_excel(estado.ruta_excel_trabajo, index=False)
         actualizar_etiqueta_excel()
         if mostrar_aviso:
             messagebox.showinfo("Guardado", f"Excel actualizado:\n{estado.ruta_excel_trabajo}")
+        return True
     except PermissionError:
         messagebox.showerror(
             "Error al guardar",
             "No se pudo guardar el Excel. Verifica que no esté abierto en otro "
             "programa (por ejemplo Excel) y vuelve a intentar."
         )
+        return False
     except Exception as e:
         messagebox.showerror("Error al guardar", str(e))
+        return False
+
+
+def eliminar_alumno_seleccionado():
+    """Elimina el alumno seleccionado después de una confirmación doble."""
+    if estado.df_alumnos is None or estado.alumno_actual_idx is None:
+        messagebox.showwarning(
+            "Sin alumno", "Selecciona un alumno de la lista primero.")
+        return
+    if estado.video is not None:
+        messagebox.showwarning(
+            "Cámara activa", "Detén la cámara antes de eliminar un alumno.")
+        return
+
+    indice = estado.alumno_actual_idx
+    fila = estado.df_alumnos.loc[indice]
+    nombre = str(fila.get("NombreCompleto", "")).strip()
+    matricula = str(fila.get("Matricula", "")).strip()
+    confirmar = messagebox.askyesno(
+        "Eliminar alumno",
+        f"¿Deseas eliminar a:\n\n{nombre}\nMatrícula: {matricula}?\n\n"
+        "También se quitará su fotografía de la lista. Se conservará un respaldo.",
+        icon="warning")
+    if not confirmar:
+        return
+
+    entrada = simpledialog.askstring(
+        "Confirmación final",
+        f"Para confirmar, escribe exactamente la matrícula:\n{matricula}",
+        parent=estado.root)
+    if entrada is None or entrada.strip().upper() != matricula.upper():
+        messagebox.showwarning(
+            "Eliminación cancelada",
+            "La matrícula no coincide. No se eliminó ningún dato.")
+        return
+
+    ruta_foto = resolver_ruta_archivo(fila.get("RutaFoto", ""))
+    eliminado_en_memoria = False
+    try:
+        crear_respaldo(estado.ruta_excel_trabajo, "excel")
+        estado.df_alumnos = estado.df_alumnos.drop(index=indice)
+        eliminado_en_memoria = True
+        if not guardar_excel(mostrar_aviso=False):
+            raise OSError("No se pudo guardar el Excel actualizado.")
+    except Exception as error:
+        if eliminado_en_memoria:
+            estado.df_alumnos = pd.concat([
+                estado.df_alumnos, fila.to_frame().T,
+            ]).sort_index()
+        messagebox.showerror(
+            "No se pudo eliminar", f"El alumno no fue eliminado.\n\n{error}")
+        return
+
+    if ruta_foto and os.path.isfile(ruta_foto):
+        try:
+            carpeta_respaldo = os.path.join(
+                estado.ruta_proyecto or os.path.dirname(estado.ruta_excel_trabajo),
+                "respaldos_camapp", "fotos_eliminadas")
+            os.makedirs(carpeta_respaldo, exist_ok=True)
+            nombre_respaldo = (
+                f"{sanitizar_nombre_archivo(nombre)}_{matricula}_"
+                f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+                f"{os.path.splitext(ruta_foto)[1] or '.png'}")
+            shutil.move(ruta_foto, os.path.join(carpeta_respaldo, nombre_respaldo))
+        except OSError:
+            notificar(
+                "Alumno eliminado; la fotografía original quedó en su ubicación.",
+                "warning")
+
+    try:
+        from historial import eliminar_registros_alumno
+        eliminar_registros_alumno(matricula)
+    except Exception:
+        pass
+
+    estado.alumno_actual_idx = None
+    actualizar_lista()
+    actualizar_etiqueta_alumno()
+    notificar(f"{nombre} fue eliminado correctamente", "success")
 
 
 # ─── Lista / selección de alumnos ────────────────────────────────────────────
@@ -357,7 +439,8 @@ def seleccionar_alumno(event=None):
         estado.alumno_actual_idx = None
         if estado.boton_imprimir_credencial:
             estado.boton_imprimir_credencial.configure(state="disabled")
-        for boton in (estado.boton_cargar_foto, estado.boton_historial):
+        for boton in (estado.boton_cargar_foto, estado.boton_historial,
+                      estado.boton_eliminar_alumno):
             if boton:
                 boton.configure(state="disabled")
         actualizar_etiqueta_alumno()
@@ -365,7 +448,8 @@ def seleccionar_alumno(event=None):
     estado.alumno_actual_idx = int(seleccion[0])
     if estado.boton_imprimir_credencial:
         estado.boton_imprimir_credencial.configure(state="normal")
-    for boton in (estado.boton_cargar_foto, estado.boton_historial):
+    for boton in (estado.boton_cargar_foto, estado.boton_historial,
+                  estado.boton_eliminar_alumno):
         if boton:
             boton.configure(state="normal")
     actualizar_etiqueta_alumno()

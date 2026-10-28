@@ -22,6 +22,7 @@ from excel_datos import (
     cargar_excel, guardar_excel, descargar_plantilla_excel,
     actualizar_lista, actualizar_lista_debounced,
     seleccionar_alumno, abrir_editor_alumno, abrir_agregar_alumno,
+    eliminar_alumno_seleccionado,
     actualizar_etiqueta_excel, actualizar_etiqueta_alumno,
 )
 from camara import (
@@ -66,6 +67,8 @@ def limpiar_datos_actuales():
         estado.boton_cargar_foto.configure(state="disabled")
     if estado.boton_historial:
         estado.boton_historial.configure(state="disabled")
+    if estado.boton_eliminar_alumno:
+        estado.boton_eliminar_alumno.configure(state="disabled")
     for item in estado.tree.get_children() if estado.tree else []:
         estado.tree.delete(item)
     if estado.combo_grupo:
@@ -322,7 +325,7 @@ estado.etiqueta_foto.pack(fill="both", expand=True)
 
 frame_acciones_alumno = tb.Frame(frame_derecho)
 frame_acciones_alumno.pack(fill="x", pady=(2, 8), padx=5)
-for columna in range(4):
+for columna in range(5):
     frame_acciones_alumno.grid_columnconfigure(columna, weight=1)
 
 tb.Button(frame_acciones_alumno, text="✏ Editar", bootstyle="secondary-outline",
@@ -346,6 +349,12 @@ estado.boton_historial = tb.Button(
     bootstyle="warning-outline", cursor="hand2",
     command=mostrar_historial_alumno, state="disabled", width=14)
 estado.boton_historial.grid(row=0, column=3, sticky="ew", padx=4, ipady=2)
+
+estado.boton_eliminar_alumno = tb.Button(
+    frame_acciones_alumno, text="🗑 Eliminar",
+    bootstyle="danger-outline", cursor="hand2",
+    command=eliminar_alumno_seleccionado, state="disabled", width=14)
+estado.boton_eliminar_alumno.grid(row=0, column=4, sticky="ew", padx=4, ipady=2)
 
 # El orden visual queda: acciones, fotografía del alumno y cámara.
 frame_info_alumno.pack(fill="both", expand=True, pady=(4, 2))

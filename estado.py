@@ -44,6 +44,7 @@ boton_detener_camara = None
 boton_imprimir_credencial = None
 boton_cargar_foto = None
 boton_historial = None
+boton_eliminar_alumno = None
 id_notificacion_pendiente = None
 
 # ─── Proyecto activo ─────────────────────────────────────────────────────────

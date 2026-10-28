@@ -2,6 +2,7 @@
 
 import csv
 import os
+import tempfile
 from datetime import datetime
 import tkinter as tk
 from tkinter import messagebox
@@ -13,6 +14,36 @@ CAMPOS = (
     "Fecha", "Indice", "Matricula", "NombreCompleto", "Grupo",
     "Tipo", "RutaPDF", "Reposicion",
 )
+
+
+def eliminar_registros_alumno(matricula):
+    """Quita del historial las impresiones asociadas a una matrícula."""
+    ruta = ruta_historial()
+    if not ruta or not os.path.isfile(ruta):
+        return 0
+    with open(ruta, newline="", encoding="utf-8-sig") as archivo:
+        filas = list(csv.DictReader(archivo))
+    restantes = [
+        fila for fila in filas
+        if str(fila.get("Matricula", "")) != str(matricula)
+    ]
+    eliminados = len(filas) - len(restantes)
+    if not eliminados:
+        return 0
+    carpeta = os.path.dirname(ruta)
+    fd, temporal = tempfile.mkstemp(
+        prefix="historial_", suffix=".csv", dir=carpeta)
+    os.close(fd)
+    try:
+        with open(temporal, "w", newline="", encoding="utf-8-sig") as archivo:
+            escritor = csv.DictWriter(archivo, fieldnames=CAMPOS)
+            escritor.writeheader()
+            escritor.writerows(restantes)
+        os.replace(temporal, ruta)
+    finally:
+        if os.path.exists(temporal):
+            os.remove(temporal)
+    return eliminados
 
 
 def ruta_historial():
