@@ -546,8 +546,8 @@ def actualizar_previsualizacion_foto():
         return
     try:
         with Image.open(ruta) as imagen:
-            imagen = ImageOps.contain(imagen.convert("RGB"), (250, 300))
-            lienzo = Image.new("RGB", (260, 320), "white")
+            imagen = ImageOps.contain(imagen.convert("RGB"), (220, 160))
+            lienzo = Image.new("RGB", (240, 180), "white")
             posicion = (
                 (lienzo.width - imagen.width) // 2,
                 (lienzo.height - imagen.height) // 2,
@@ -715,29 +715,37 @@ def abrir_agregar_alumno():
 
 # ─── Editor de datos del alumno ──────────────────────────────────────────────
 def abrir_editor_alumno():
-    """Abre un formulario para corregir Nombre, Apellidos y CURP del alumno
-    seleccionado (la Matrícula no es editable: es la clave que usa todo el
-    programa para identificar al alumno y sus archivos)."""
+    """Abre un formulario independiente para editar todos los datos básicos."""
     if estado.alumno_actual_idx is None or estado.df_alumnos is None:
         messagebox.showwarning("Sin alumno", "Selecciona un alumno de la lista primero.")
         return
 
     fila = estado.df_alumnos.loc[estado.alumno_actual_idx]
-    campos = ["Nombre", "Apellido Paterno", "Apellido Materno", "CURP"]
+    campos = [
+        "Nombre", "Apellido Paterno", "Apellido Materno", "CURP", "Matricula",
+        "Turno", "Grupo", "Especialidad",
+    ]
 
     ventana_editar = tk.Toplevel(estado.root)
     ventana_editar.title("Editar Datos del Alumno")
     ventana_editar.resizable(False, False)
 
-    tb.Label(ventana_editar, text=f"Matrícula: {fila['Matricula']}  (no editable)",
+    tb.Label(ventana_editar, text="Modifica los datos del alumno y guarda los cambios.",
              font=("Segoe UI", 9, "italic"), bootstyle="secondary"
              ).grid(row=0, column=0, columnspan=2, padx=15, pady=(15, 10), sticky="w")
 
     entradas = {}
     for i, campo in enumerate(campos, start=1):
         tb.Label(ventana_editar, text=f"{campo}:").grid(row=i, column=0, sticky="e", padx=(15, 5), pady=6)
-        entrada = tb.Entry(ventana_editar, width=30)
-        entrada.insert(0, fila[campo])
+        if campo in ("Turno", "Grupo", "Especialidad"):
+            valores = sorted(str(valor) for valor in estado.df_alumnos[campo].unique() if str(valor).strip())
+            entrada = tb.Combobox(ventana_editar, width=28, state="readonly", values=valores)
+        else:
+            entrada = tb.Entry(ventana_editar, width=30)
+        if isinstance(entrada, tb.Combobox):
+            entrada.set(str(fila[campo]))
+        else:
+            entrada.insert(0, fila[campo])
         entrada.grid(row=i, column=1, padx=(0, 15), pady=6)
         entradas[campo] = entrada
     entradas["Nombre"].focus_set()
@@ -748,9 +756,10 @@ def abrir_editor_alumno():
             for campo in campos
         }
 
-        if not nuevos_valores["Nombre"] or not nuevos_valores["Apellido Paterno"]:
+        if (not nuevos_valores["Nombre"] or not nuevos_valores["Apellido Paterno"]
+                or not nuevos_valores["Matricula"]):
             messagebox.showwarning("Datos incompletos",
-                "Nombre y Apellido Paterno no pueden quedar vacíos.",
+                "Nombre, apellido paterno y matrícula no pueden quedar vacíos.",
                 parent=ventana_editar)
             return
 
@@ -763,6 +772,11 @@ def abrir_editor_alumno():
         if (otros["CURP"] == nuevos_valores["CURP"]).any():
             messagebox.showwarning("CURP duplicado",
                 "Ese CURP ya pertenece a otro alumno en la lista.", parent=ventana_editar)
+            return
+        if (otros["Matricula"] == nuevos_valores["Matricula"]).any():
+            messagebox.showwarning("Matrícula duplicada",
+                "Esa matrícula ya pertenece a otro alumno en la lista.",
+                parent=ventana_editar)
             return
 
         nombre_completo_anterior = fila["NombreCompleto"]
@@ -787,10 +801,11 @@ def abrir_editor_alumno():
         # Si ya tenía foto y el nombre cambió, renombrar el archivo físico
         # para que siga coincidiendo con el nombre corregido.
         if (ruta_foto_anterior and os.path.exists(ruta_foto_anterior)
-                and nuevo_nombre_completo != nombre_completo_anterior):
+                and (nuevo_nombre_completo != nombre_completo_anterior
+                     or nuevos_valores["Matricula"] != fila["Matricula"])):
             carpeta = os.path.dirname(ruta_foto_anterior)
             nuevo_nombre_archivo = sanitizar_nombre_archivo(
-                f"{nuevo_nombre_completo}_{fila['Matricula']}") + ".png"
+                f"{nuevo_nombre_completo}_{nuevos_valores['Matricula']}") + ".png"
             nueva_ruta = os.path.join(carpeta, nuevo_nombre_archivo)
             try:
                 os.rename(ruta_foto_anterior, nueva_ruta)

@@ -23,7 +23,6 @@ from excel_datos import (
     actualizar_lista, actualizar_lista_debounced,
     seleccionar_alumno, abrir_editor_alumno, abrir_agregar_alumno,
     actualizar_etiqueta_excel, actualizar_etiqueta_alumno,
-    crear_editor_alumno_panel,
 )
 from camara import (
     video_camara, tomar_foto, cargar_foto_archivo, detener_video, cerrar_ventana,
@@ -314,13 +313,13 @@ estado.etiqueta_alumno = tb.Label(
 # Se conserva la referencia para la lógica interna, pero ya no se muestra el
 # texto redundante sobre el alumno seleccionado.
 
-crear_editor_alumno_panel(frame_info_alumno).pack(fill="x", padx=5, pady=(4, 6))
-
+frame_previsualizacion = tb.Frame(frame_info_alumno, width=260, height=190)
+frame_previsualizacion.pack(pady=(5, 8))
+frame_previsualizacion.pack_propagate(False)
 estado.etiqueta_foto = tk.Label(
-    frame_info_alumno, text="Sin fotografía", bg="#f8f9fa",
-    fg="#6c757d", anchor="center", justify="center",
-    padx=8, pady=8)
-estado.etiqueta_foto.pack(pady=(5, 8))
+    frame_previsualizacion, text="Sin fotografía", bg="#f8f9fa",
+    fg="#6c757d", anchor="center", justify="center")
+estado.etiqueta_foto.pack(fill="both", expand=True)
 
 frame_acciones_alumno = tb.Frame(frame_derecho)
 frame_acciones_alumno.pack(fill="x", pady=(2, 8), padx=5)
