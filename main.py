@@ -201,7 +201,7 @@ actualizar_indicadores()
 frame_contenido = tb.Frame(estado.root, padding=(15, 5))
 frame_contenido.pack(side="top", fill="both", expand=True)
 frame_contenido.grid_columnconfigure(0, weight=1, uniform="paneles")
-frame_contenido.grid_columnconfigure(1, weight=1, uniform="paneles")
+frame_contenido.grid_columnconfigure(1, weight=3, uniform="paneles")
 frame_contenido.grid_rowconfigure(0, weight=1)
 
 # Panel izquierdo: alumnos
@@ -311,7 +311,8 @@ frame_info_alumno.pack(fill="x", pady=(5, 2))
 estado.etiqueta_alumno = tb.Label(
     frame_info_alumno, text="Sin alumno seleccionado",
     font=("Segoe UI", 12, "bold"), anchor="center", justify="center")
-estado.etiqueta_alumno.pack(fill="x", padx=8)
+# Se conserva la referencia para la lógica interna, pero ya no se muestra el
+# texto redundante sobre el alumno seleccionado.
 
 crear_editor_alumno_panel(frame_info_alumno).pack(fill="x", padx=5, pady=(4, 6))
 
@@ -322,29 +323,31 @@ estado.etiqueta_foto = tk.Label(
 estado.etiqueta_foto.pack(pady=(5, 8))
 
 frame_acciones_alumno = tb.Frame(frame_derecho)
-frame_acciones_alumno.pack(pady=(2, 8))
+frame_acciones_alumno.pack(fill="x", pady=(2, 8), padx=5)
+for columna in range(4):
+    frame_acciones_alumno.grid_columnconfigure(columna, weight=1)
 
 tb.Button(frame_acciones_alumno, text="✏️ Editar Datos", bootstyle="secondary-outline",
           cursor="hand2", command=abrir_editor_alumno, width=18
-          ).pack(side="left", padx=5, ipady=4)
+          ).grid(row=0, column=0, sticky="ew", padx=4, ipady=4)
 
 estado.boton_imprimir_credencial = tb.Button(
     frame_acciones_alumno, text="🖨️ Imprimir credencial",
     bootstyle="success-outline", cursor="hand2",
     command=imprimir_alumno_seleccionado, state="disabled", width=22)
-estado.boton_imprimir_credencial.pack(side="left", padx=5, ipady=4)
+estado.boton_imprimir_credencial.grid(row=0, column=1, sticky="ew", padx=4, ipady=4)
 
 estado.boton_cargar_foto = tb.Button(
     frame_acciones_alumno, text="📂 Cargar fotografía",
     bootstyle="info-outline", cursor="hand2",
     command=cargar_foto_archivo, state="disabled", width=20)
-estado.boton_cargar_foto.pack(side="left", padx=5, ipady=4)
+estado.boton_cargar_foto.grid(row=0, column=2, sticky="ew", padx=4, ipady=4)
 
 estado.boton_historial = tb.Button(
     frame_acciones_alumno, text="🧾 Historial",
     bootstyle="warning-outline", cursor="hand2",
     command=mostrar_historial_alumno, state="disabled", width=14)
-estado.boton_historial.pack(side="left", padx=5, ipady=4)
+estado.boton_historial.grid(row=0, column=3, sticky="ew", padx=4, ipady=4)
 
 # Los controles se empaquetan desde abajo antes que el video para reservar
 # siempre su espacio, incluso en pantallas de menor altura.
@@ -353,22 +356,24 @@ tb.Button(frame_derecho, text="Cerrar Programa", bootstyle="danger",
           ).pack(side="bottom", pady=(8, 12), ipady=4)
 
 frame_botones_camara = tb.Frame(frame_derecho)
-frame_botones_camara.pack(side="bottom", pady=(8, 10))
+frame_botones_camara.pack(side="bottom", fill="x", padx=20, pady=(8, 10))
+for columna in range(3):
+    frame_botones_camara.grid_columnconfigure(columna, weight=1)
 
 estado.boton_iniciar_camara = tb.Button(
     frame_botones_camara, text="▶ Iniciar Cámara", bootstyle="success",
     cursor="hand2", command=video_camara, width=15)
-estado.boton_iniciar_camara.grid(row=0, column=0, padx=8, ipady=8)
+estado.boton_iniciar_camara.grid(row=0, column=0, sticky="ew", padx=5, ipady=8)
 
 estado.boton_tomar_foto = tb.Button(
     frame_botones_camara, text="📷 Tomar Fotografía", bootstyle="primary",
     cursor="hand2", command=tomar_foto, width=15, state="disabled")
-estado.boton_tomar_foto.grid(row=0, column=1, padx=8, ipady=8)
+estado.boton_tomar_foto.grid(row=0, column=1, sticky="ew", padx=5, ipady=8)
 
 estado.boton_detener_camara = tb.Button(
     frame_botones_camara, text="■ Detener Cámara", bootstyle="warning",
     cursor="hand2", command=detener_video, width=15, state="disabled")
-estado.boton_detener_camara.grid(row=0, column=2, padx=8, ipady=8)
+estado.boton_detener_camara.grid(row=0, column=2, sticky="ew", padx=5, ipady=8)
 
 tb.Button(
     frame_botones_camara, text="⚙ Configurar Cámara",
